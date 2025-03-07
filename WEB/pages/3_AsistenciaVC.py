@@ -27,7 +27,6 @@ if 'usuario' in st.session_state and 'area' in st.session_state:
             # Autentícate con GitHub
             g = Github(token)
             repo = g.get_repo("BM1012/AsistenciasTV")
-            st.success("Conexión exitosa con el repositorio.")
             return repo
         except BadCredentialsException:
             st.error("Error de autenticación: Token inválido o vencido.")
