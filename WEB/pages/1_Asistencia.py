@@ -17,7 +17,7 @@ backgroundColor = st.get_option('theme.secondaryBackgroundColor')
 textColor = st.get_option('theme.textColor')
 
 # Aplicando colores CSS
-utils.local_css('/mount/src/asistenciastv/WEB/estilos.css', backgroundColor)
+utils.local_css('/mount/src/a_tv/WEB/estilos.css', backgroundColor)
 
 login.generarLogin()
 
@@ -208,7 +208,7 @@ if 'usuario' in st.session_state and 'area' in st.session_state:
 
     # Leer el archivo CSV PASS-ST
     # Asegúrate de proporcionar la ruta correcta
-    df_pass_st = pd.read_csv('/mount/src/asistenciastv/WEB/PASS-ST.csv')
+    df_pass_st = pd.read_csv('/mount/src/a_tv/WEB/PASS-ST.csv')
 
     # Filtrar por el área en st.session_state
 
