@@ -3,7 +3,7 @@ import pandas as pd
 import unicodedata
 import datetime
 
-dfusuarios = pd.read_csv('/mount/src/asistenciastv/WEB/PASS-ST.csv')
+dfusuarios = pd.read_csv('/mount/src/a_tv/WEB/PASS-ST.csv')
 
 usuarios_permitidos = ['lfortunato', 'clopez', 'bsanabria',
                        'omoctezuma', 'molguin', 'jreyes', 'amendoza', 'aherrera']
@@ -87,7 +87,7 @@ def generarMenu(usuario):
 
     with st.sidebar:
         st.image(
-            "/mount/src/asistenciastv/WEB/Captura de pantalla 2025-02-14 171552.png", use_container_width=True)
+            "/mount/src/a_tv/WEB/Captura de pantalla 2025-02-14 171552.png", use_container_width=True)
         usuario_df = dfusuarios[(dfusuarios['User'] == usuario)]
         nombre = usuario_df['Ejecutivo'].iloc[0]
         st.write(f'Usuario: **:blue-background[{nombre}]** ')
