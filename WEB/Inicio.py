@@ -17,7 +17,7 @@ backgroundColor = st.get_option('theme.secondaryBackgroundColor')
 textColor = st.get_option('theme.textColor')
 
 # Aplicando colores CSS
-utils.local_css('/mount/src/asistenciastv/WEB/estilos.css', backgroundColor)
+utils.local_css('/mount/src/a_tv/WEB/estilos.css', backgroundColor)
 
 
 login.generarLogin()  # Usar la función con el prefijo del módulo
@@ -88,7 +88,7 @@ if 'usuario' in st.session_state:
             vt = 0  # Establecer vt a 0 si es el aniversario
 
     # Asegúrate de proporcionar la ruta correcta
-    df_pass_st = pd.read_csv('/mount/src/asistenciastv/WEB/PASS-ST.csv')
+    df_pass_st = pd.read_csv('/mount/src/a_tv/WEB/PASS-ST.csv')
     vt = vt + st.session_state['Tomados']
     diferencia_dias = ((hoy - ingreso).dt.days) / 365
     vp = []  # Inicializa vp como una lista
