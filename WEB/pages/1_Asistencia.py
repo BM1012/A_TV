@@ -163,6 +163,8 @@ if 'usuario' in st.session_state and 'area' in st.session_state:
 
     if st.session_state['usuario'] in ['lfortunato', 'clopez', 'bsanabria', 'omoctezuma', 'molguin', 'jreyes', 'amendoza', 'aherrera']:
         if ejecutivo == 'Selecciona un colaborador':
+            ingreso = dfhr
+        elif st.session_state['usuario'] in ['omoctezuma', 'molguin', 'jreyes', 'amendoza', 'aherrera']:
             ingreso = dfhr[(dfhr['ÁREA'] == st.session_state['area'])]
         else:
             ingreso = dfhr[(dfhr['EJECUTIVO'] == ejecutivo)]
