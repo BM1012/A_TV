@@ -44,37 +44,46 @@ if 'usuario' in st.session_state and 'area' in st.session_state:
         while True:
             try:
                 # Leer el archivo actual
-                contenido = repo.get_contents("PERMISOS.csv")
-                contenido_decodificado = contenido.decoded_content.decode(
-                    'utf-8-sig')
+                archivo_original = "Vacaciones.csv"
+                archivo_respaldo = "Vacaciones_backup.csv"
 
-                # Usar StringIO para simular un archivo
-                df = pd.read_csv(
+                # Leer el archivo original desde GitHub
+                contenido = repo.get_contents(archivo_original)
+                contenido_decodificado = contenido.decoded_content.decode(
+                    'utf-8-sig')  # Decodificar el contenido
+                df_original = pd.read_csv(
                     StringIO(contenido_decodificado), encoding='utf-8-sig')
 
-                # Actualizar registros existentens
-                for index, nueva_fila in nuevos_datos.iterrows():
-                    condicion = (df['COLABORADOR'] == nueva_fila['COLABORADOR']) & \
-                        (df['FECHA'] == nueva_fila['FECHA']) & \
-                        (df['CONCEPTO'] == nueva_fila['CONCEPTO'])
+                # Verificar si el archivo de respaldo existe
+                if os.path.exists(archivo_respaldo):
+                    # Leer el archivo de respaldo
+                    df_respaldo = pd.read_csv(
+                        archivo_respaldo, encoding='utf-8-sig')
 
-                    if df[condicion].any().any():  # Si el registro existe
-                        df.loc[condicion, 'ID'] = nueva_fila['ID']
-                        # Debug
-                        print(
-                            f"Actualizando ID para: {nueva_fila['COLABORADOR']} - {nueva_fila['FECHA']}")
-                    else:
-                        df = pd.concat(
-                            [df, nueva_fila.to_frame().T], ignore_index=True)
+                    # Comparar los datos originales con los del respaldo
+                    if not df_original.equals(df_respaldo):
+                        # Si hay diferencias, actualizar el archivo original con los datos del respaldo
+                        df_original = df_respaldo.copy()
+                        st.warning(
+                            "Se detectaron diferencias entre el archivo original y el respaldo. Se ha actualizado el archivo original con los datos del respaldo.")
 
-                # Subir la nueva versión
+                # Crear un respaldo del archivo original antes de realizar la actualización
+                df_original.to_csv(
+                    archivo_respaldo, index=False, encoding='utf-8-sig')
+
+                # Actualizar el archivo original con los nuevos datos
+                df_actualizado = pd.concat(
+                    [df_original, nuevos_datos], ignore_index=True)
+
+                # Subir la nueva versión al repositorio de GitHub
                 repo.update_file(
-                    path='PERMISOS.csv',
+                    path=archivo_original,
                     message='Actualización automática del archivo',
-                    content=df.to_csv(
+                    content=df_actualizado.to_csv(
                         index=False, encoding='utf-8-sig'),
                     sha=contenido.sha
                 )
+
                 st.success("Datos guardados correctamente")
                 break
             except Exception as e:
