@@ -7,6 +7,7 @@ from io import StringIO
 from github import Github
 from github.GithubException import BadCredentialsException
 import login as login
+import os
 import calendar
 
 login.generarLogin()
