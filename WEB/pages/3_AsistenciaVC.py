@@ -6,6 +6,7 @@ import pandas as pd
 from io import StringIO
 from github import Github
 from github.GithubException import BadCredentialsException
+import os
 import login as login
 
 login.generarLogin()
