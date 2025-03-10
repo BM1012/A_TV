@@ -66,27 +66,35 @@ if 'usuario' in st.session_state and 'area' in st.session_state:
             
                 # Verificar si nuevos_datos contiene datos nuevos o actualizaciones
                 if not nuevos_datos.empty:
-                    # Actualizar registros existentes o agregar nuevos
+                    # Leer el archivo actualizado desde GitHub (en caso de que otro usuario lo haya modificado)
+                    try:
+                        contenido_actualizado = repo.get_contents(archivo_original)
+                        contenido_actualizado_decodificado = contenido_actualizado.decoded_content.decode('utf-8-sig')
+                        df_actualizado = pd.read_csv(StringIO(contenido_actualizado_decodificado), encoding='utf-8-sig')
+                    except:
+                        df_actualizado = df_original.copy()
+            
+                    # Fusionar los cambios de nuevos_datos con el archivo actualizado
                     for index, nueva_fila in nuevos_datos.iterrows():
-                        condicion = (df_original['COLABORADOR'] == nueva_fila['COLABORADOR']) & \
-                                     (df_original['FECHA'] == nueva_fila['FECHA'])
+                        condicion = (df_actualizado['COLABORADOR'] == nueva_fila['COLABORADOR']) & \
+                                     (df_actualizado['FECHA'] == nueva_fila['FECHA'])
                         
-                        if not df_original.loc[condicion].empty:  # Si el registro existe
+                        if not df_actualizado.loc[condicion].empty:  # Si el registro existe
                             # Actualizar solo la columna 'ID'
-                            df_original.loc[condicion, 'ID'] = nueva_fila['ID']
+                            df_actualizado.loc[condicion, 'ID'] = nueva_fila['ID']
                         else:
-                            # Agregar la nueva fila al archivo original
-                            df_original = pd.concat([df_original, nueva_fila.to_frame().T], ignore_index=True)
+                            # Agregar la nueva fila al archivo actualizado
+                            df_actualizado = pd.concat([df_actualizado, nueva_fila.to_frame().T], ignore_index=True)
             
-                # Subir la nueva versión al repositorio de GitHub
-                repo.update_file(
-                    path=archivo_original,
-                    message='Actualización automática del archivo',
-                    content=df_original.to_csv(index=False, encoding='utf-8-sig'),
-                    sha=contenido.sha
-                )
+                    # Subir la nueva versión al repositorio de GitHub
+                    repo.update_file(
+                        path=archivo_original,
+                        message='Actualización automática del archivo',
+                        content=df_actualizado.to_csv(index=False, encoding='utf-8-sig'),
+                        sha=contenido.sha
+                    )
             
-                st.success("Datos guardados correctamente")
+                    st.success("Datos guardados correctamente.")
                 break
             except Exception as e:
                 st.warning(f"Error: {e}. Reintentando en 5 segundos...")
