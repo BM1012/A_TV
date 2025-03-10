@@ -3,11 +3,11 @@ import datetime as dt
 import unicodedata
 import time
 import pandas as pd
-from io import StringIO
-from github import Github
-from github.GithubException import BadCredentialsException
-import os
 import login as login
+import os
+from io import StringIO
+from github import Github, GithubException
+from github.GithubException import BadCredentialsException
 
 login.generarLogin()
 
