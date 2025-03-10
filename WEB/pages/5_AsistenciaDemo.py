@@ -6,6 +6,7 @@ import time
 import login as login
 from io import StringIO
 from github import Github
+import os
 from github.GithubException import BadCredentialsException
 
 hoy = dt.datetime.now().strftime("%d/%m/%Y")
