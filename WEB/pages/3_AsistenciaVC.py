@@ -36,8 +36,6 @@ if 'usuario' in st.session_state and 'area' in st.session_state:
     def actualizar_csv(repo, nuevos_datos):
         while True:
             try:
-        while True:
-            try:
                 # Leer el archivo actual
                 archivo_original = "Vacaciones.csv"
                 archivo_respaldo = "Vacaciones_backup.csv"
