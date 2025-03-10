@@ -39,8 +39,8 @@ if 'usuario' in st.session_state and 'area' in st.session_state:
         while True:
             try:
                 # Leer el archivo actual
-                archivo_original = "Home_Office.csv"
-                archivo_respaldo = "Home_Office_backup.csv"
+                archivo_original = "Vacaciones.csv"
+                archivo_respaldo = "Vacaciones_backup.csv"
 
                 # Leer el archivo original desde GitHub
                 contenido = repo.get_contents(archivo_original)
