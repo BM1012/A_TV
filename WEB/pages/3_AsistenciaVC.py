@@ -34,6 +34,19 @@ if 'usuario' in st.session_state and 'area' in st.session_state:
         except Exception as e:
             st.error(f"Error inesperado: {e}")
 
+    def forzar_lectura_github(repo, archivo_original, intentos=3):
+        """Forzar la lectura del archivo desde GitHub, reintentando si es necesario."""
+        for _ in range(intentos):
+            try:
+                contenido = repo.get_contents(archivo_original)
+                contenido_decodificado = contenido.decoded_content.decode('utf-8-sig')
+                df = pd.read_csv(StringIO(contenido_decodificado), encoding='utf-8-sig')
+                return df, contenido.sha  # Devolver el DataFrame y el SHA del contenido
+            except GithubException as e:
+                st.warning(f"Error al leer el archivo desde GitHub: {e}. Reintentando en 5 segundos...")
+                time.sleep(5)
+        raise Exception("No se pudo leer el archivo desde GitHub después de varios intentos.")
+    
     def actualizar_csv(repo, nuevos_datos):
         # Ruta del archivo original y del respaldo
         archivo_original = "Vacaciones.csv"
@@ -43,10 +56,8 @@ if 'usuario' in st.session_state and 'area' in st.session_state:
         intentos = 0
         while intentos < 3:
             try:
-                # Leer el archivo original desde GitHub (siempre obtener la versión más reciente)
-                contenido = repo.get_contents(archivo_original)
-                contenido_decodificado = contenido.decoded_content.decode('utf-8-sig')
-                df_original = pd.read_csv(StringIO(contenido_decodificado), encoding='utf-8-sig')
+                # Forzar la lectura del archivo más reciente desde GitHub
+                df_original, sha_original = forzar_lectura_github(repo, archivo_original)
     
                 # Verificar si el archivo de respaldo existe
                 if os.path.exists(archivo_respaldo):
@@ -85,7 +96,7 @@ if 'usuario' in st.session_state and 'area' in st.session_state:
                     path=archivo_original,
                     message='Actualización automática del archivo',
                     content=df_original.to_csv(index=False, encoding='utf-8-sig'),
-                    sha=contenido.sha  # Usar el SHA del contenido actual para evitar conflictos
+                    sha=sha_original  # Usar el SHA del contenido actual para evitar conflictos
                 )
     
                 st.success("Datos guardados correctamente.")
