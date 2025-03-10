@@ -44,47 +44,54 @@ if 'usuario' in st.session_state and 'area' in st.session_state:
     def actualizar_csv(repo, nuevos_datos):
         while True:
             try:
-                # Leer el archivo actual
                 archivo_original = "Home_Office.csv"
                 archivo_respaldo = "Home_Office_backup.csv"
-
+            
                 # Leer el archivo original desde GitHub
                 contenido = repo.get_contents(archivo_original)
-                contenido_decodificado = contenido.decoded_content.decode(
-                    'utf-8-sig')  # Decodificar el contenido
-                df_original = pd.read_csv(
-                    StringIO(contenido_decodificado), encoding='utf-8-sig')
-
+                contenido_decodificado = contenido.decoded_content.decode('utf-8-sig')  # Decodificar el contenido
+                df_original = pd.read_csv(StringIO(contenido_decodificado), encoding='utf-8-sig')
+            
                 # Verificar si el archivo de respaldo existe
                 if os.path.exists(archivo_respaldo):
                     # Leer el archivo de respaldo
-                    df_respaldo = pd.read_csv(
-                        archivo_respaldo, encoding='utf-8-sig')
-
+                    df_respaldo = pd.read_csv(archivo_respaldo, encoding='utf-8-sig')
+            
                     # Comparar los datos originales con los del respaldo
                     if not df_original.equals(df_respaldo):
-                        # Si hay diferencias, actualizar el archivo original con los datos del respaldo
-                        df_original = df_respaldo.copy()
-                        st.warning(
-                            "Se detectaron diferencias entre el archivo original y el respaldo. Se ha actualizado el archivo original con los datos del respaldo.")
-
+                        # Identificar filas que están en el respaldo pero no en el original
+                        filas_faltantes = df_respaldo[~df_respaldo.isin(df_original)].dropna()
+            
+                        # Anexar las filas faltantes al archivo original
+                        if not filas_faltantes.empty:
+                            df_original = pd.concat([df_original, filas_faltantes], ignore_index=True)
+                            st.warning("Se detectaron datos en el respaldo que no estaban en el archivo original. Se han anexado al archivo original.")
+            
                 # Crear un respaldo del archivo original antes de realizar la actualización
-                df_original.to_csv(
-                    archivo_respaldo, index=False, encoding='utf-8-sig')
-
-                # Actualizar el archivo original con los nuevos datos
-                df_actualizado = pd.concat(
-                    [df_original, nuevos_datos], ignore_index=True)
-
+                df_original.to_csv(archivo_respaldo, index=False, encoding='utf-8-sig')
+            
+                # Verificar si nuevos_datos contiene datos nuevos o actualizaciones
+                if not nuevos_datos.empty:
+                    # Actualizar registros existentes o agregar nuevos
+                    for index, nueva_fila in nuevos_datos.iterrows():
+                        condicion = (df_original['COLABORADOR'] == nueva_fila['COLABORADOR']) & \
+                                     (df_original['FECHA'] == nueva_fila['FECHA'])
+                        
+                        if not df_original.loc[condicion].empty:  # Si el registro existe
+                            # Actualizar solo la columna 'ID'
+                            df_original.loc[condicion, 'ID'] = nueva_fila['ID']
+                        else:
+                            # Agregar la nueva fila al archivo original
+                            df_original = pd.concat([df_original, nueva_fila.to_frame().T], ignore_index=True)
+            
                 # Subir la nueva versión al repositorio de GitHub
                 repo.update_file(
                     path=archivo_original,
                     message='Actualización automática del archivo',
-                    content=df_actualizado.to_csv(
-                        index=False, encoding='utf-8-sig'),
+                    content=df_original.to_csv(index=False, encoding='utf-8-sig'),
                     sha=contenido.sha
                 )
-
+            
                 st.success("Datos guardados correctamente")
                 break
             except Exception as e:
