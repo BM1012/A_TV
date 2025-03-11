@@ -264,7 +264,8 @@ if 'usuario' in st.session_state and 'area' in st.session_state:
             "AREA": unicodedata.normalize('NFKD', st.session_state['area']).encode('ASCII', 'ignore').decode('ASCII'),
             # Usar la lista de días de session_state
             "FECHA": st.session_state['days'],
-            "MES": 'FEBRERO',
+            "MES": unicodedata.normalize('NFKD', mes).encode(
+                    'ASCII', 'ignore').decode('ASCII'),
             'ID': 0,
             "REGISTRO": fecha_hora_actual
         }
@@ -274,11 +275,23 @@ if 'usuario' in st.session_state and 'area' in st.session_state:
 
         if st.button("Guardar", key='Guardar-solicitud'):
             repo = acceso()
-            if permi['FECHA'].notna().any():
-                actualizar_csv(repo, permi)
-            else:
-                st.error('Por favor seleccione una opción valida')
 
+            # Crear un DataFrame temporal para la comparación
+            permi_temp = permi[['COLABORADOR', 'FECHA']].copy()
+
+            # Realizar un merge para encontrar coincidencias
+            merged = permi_temp.merge(filtro1[['COLABORADOR', 'MES']], on=[
+                                      'COLABORADOR', 'MES'], how='left', indicator=True)
+
+            # Verificar si hay coincidencias
+            if not merged[merged['_merge'] == 'both'].empty:  # Si el registro existe
+                st.error(
+                    'Ya existe el registro, por favor contacte con el administrador')
+            else:
+                if permi['FECHA'].notna().any():
+                    actualizar_csv(repo, permi)
+                else:
+                    st.error('Por favor seleccione una opción valida')
     with tab2:
         st.subheader("Base de datos")
         st.dataframe(filtro1, use_container_width=True, hide_index=True)
