@@ -264,8 +264,9 @@ if 'usuario' in st.session_state and 'area' in st.session_state:
             "AREA": unicodedata.normalize('NFKD', st.session_state['area']).encode('ASCII', 'ignore').decode('ASCII'),
             # Usar la lista de días de session_state
             "FECHA": st.session_state['days'],
-            "MES": unicodedata.normalize('NFKD', mes).encode(
-                    'ASCII', 'ignore').decode('ASCII'),
+            "MES": 'FEBRERO',
+            # "MES": unicodedata.normalize('NFKD', mes).encode(
+            #         'ASCII', 'ignore').decode('ASCII'),
             'ID': 0,
             "REGISTRO": fecha_hora_actual
         }
