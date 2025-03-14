@@ -144,7 +144,7 @@ if 'usuario' in st.session_state and 'area' in st.session_state:
     elif st.session_state['usuario'] in ['molguin']:
         filtro2 = filtro2[filtro2['AREA'] == "Administracion y servicios"]
 
-    filtro2 = filtro2[filtro2['ID'] == 0]
+    filtro2 = filtro2[filtro2['ID'] == "0"]
 
     if st.session_state['usuario'] in ['lfortunato', 'clopez', 'bsanabria']:
         filtro2 = filtro2[['COLABORADOR', 'AREA',
@@ -157,7 +157,7 @@ if 'usuario' in st.session_state and 'area' in st.session_state:
     # SOLICITUDES DIRECCIÓN -----------------------------------------------------------
 
     filtro3 = filtro3[filtro3[
-        'ID'] == 2]
+        'ID'] == "2"]
     filtro3 = filtro3[['COLABORADOR', 'AREA',
                        'FECHA']]
     filtro3['AUTORIZACION'] = 'Pendiente'
