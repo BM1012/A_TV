@@ -283,7 +283,7 @@ if 'usuario' in st.session_state and 'area' in st.session_state:
                     'Ya existe el registro, por favor contacte con el administrador')
             else:
                 if nuevos_datos['FECHA'].notna().any():
-                    actualizar_db(nuevos_datos)
+                    insertar_db(nuevos_datos)
                 else:
                     st.error('Por favor seleccione una opción valida')
     with tab2:
