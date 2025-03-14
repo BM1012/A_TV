@@ -200,22 +200,34 @@ if 'usuario' in st.session_state and 'area' in st.session_state:
                 if len(d) == 2:  # El usuario selecciona un rango de fechas
                     start_date, end_date = d
                     date_range = pd.date_range(start=start_date, end=end_date)
-                    days_list.extend(date_range.strftime("%d/%m/%Y").tolist())
-                    dias_semana = date_range.strftime('%A').tolist()
-                    indices_a_eliminar = []
+                    fechas_nuevas = date_range.strftime("%d/%m/%Y").tolist()
 
-                    for i, dia in enumerate(dias_semana):
-                        if dia.lower() in ['saturday', 'sunday']:
-                            indices_a_eliminar.append(i)
+                    # Verificar si hay solapamiento entre fechas nuevas y existentes
+                    fechas_duplicadas = [
+                        fecha for fecha in fechas_nuevas if fecha in days_list]
 
-                    for i in reversed(indices_a_eliminar):
-                        if i < len(days_list):
-                            days_list.pop(i)
-                            dias_semana.pop(i)
+                    if fechas_duplicadas:
+                        st.error(f'Las siguientes fechas ya están registradas: {", ".join(fechas_duplicadas)}')
+                    else:
+                        days_list.extend(fechas_nuevas)
+                        dias_semana = date_range.strftime('%A').tolist()
+                        indices_a_eliminar = []
+
+                        for i, dia in enumerate(dias_semana):
+                            if dia.lower() in ['saturday', 'sunday']:
+                                indices_a_eliminar.append(i)
+    
+                        for i in reversed(indices_a_eliminar):
+                            if i < len(days_list):
+                                days_list.pop(i)
+                                dias_semana.pop(i)
 
                 elif len(d) == 1:  # Si el usuario selecciona un solo día
-                    days_list.append(d[0].strftime("%d/%m/%Y"))
-
+                    fecha_nueva = d[0].strftime("%d/%m/%Y")
+                    if fecha_nueva in days_list:
+                        st.error(f'La fecha {fecha_nueva} ya se encuentra registrada, elige una opción válida')                  
+                    else:                    
+                        days_list.append(fecha_nueva)
                 if 'vacaciones' not in st.session_state:
                     st.error(
                         "Es necesario iniciar correctamente la aplicación. Redirigiendo a la página de inicio...")
