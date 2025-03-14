@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import unicodedata
+import sqlitecloud
 import datetime
 
 dfusuarios = pd.read_csv('/mount/src/a_tv/WEB/PASS-ST.csv')
@@ -20,13 +21,19 @@ def validar_usuario(usuario, clave):
 
 
 def generarMenu(usuario):
-    url = 'https://raw.githubusercontent.com/BM1012/AsistenciasTV/main/PERMISOS.csv'
-    url2 = 'https://raw.githubusercontent.com/BM1012/AsistenciasTV/main/Vacaciones.csv'
-    url3 = 'https://raw.githubusercontent.com/BM1012/AsistenciasTV/main/Home_Office.csv'
+    conexion = sqlitecloud.connect(ruta2)
+    df_filtered = pd.read_sql_query("SELECT * FROM permisos", conexion)
+    conexion.close()
 
-    df_filtered = pd.read_csv(url, encoding='latin-1')
-    df_filtered2 = pd.read_csv(url2, encoding='latin-1')
-    df_filtered3 = pd.read_csv(url3, encoding='utf-8-sig')
+    ruta3 = 'sqlitecloud://cunzcmk2nk.g5.sqlite.cloud:8860/vacaciones.db?apikey=DqTdjbNqB1ExoI2O2wUZjmfPaH2dWpYD69q2irRWB5g'
+    conexion = sqlitecloud.connect(ruta3)
+    df_filtered2 = pd.read_sql_query("SELECT * FROM vacaciones", conexion)
+    conexion.close()
+
+    ruta4 = 'sqlitecloud://cunzcmk2nk.g5.sqlite.cloud:8860/home_office.db?apikey=DqTdjbNqB1ExoI2O2wUZjmfPaH2dWpYD69q2irRWB5g'
+    conexion = sqlitecloud.connect(ruta4)
+    df_filtered3 = pd.read_sql_query("SELECT * FROM home_office", conexion)
+    conexion.close()
 
     # Inicializar variables
     num_coincidencias_gerentes = 0
@@ -67,9 +74,9 @@ def generarMenu(usuario):
                                     == st.session_state['area']]
         df_filtered3 = df_filtered3[df_filtered3['AREA']
                                     == st.session_state['area']]
-        num_coincidencias_gerentes = (df_filtered['ID'] == 0).sum()
-        num_coincidencias_gerentesVC = (df_filtered2['ID'] == 0).sum()
-        num_coincidencias_gerentesHO = (df_filtered3['ID'] == 0).sum()
+        num_coincidencias_gerentes = (df_filtered['ID'] == "0").sum()
+        num_coincidencias_gerentesVC = (df_filtered2['ID'] == "0").sum()
+        num_coincidencias_gerentesHO = (df_filtered3['ID'] == "0").sum()
 
     if st.session_state['usuario'] in ['clopez', 'lfortunato', 'bsanabria']:
         df_filteredG = df_filtered[df_filtered['AREA']
@@ -78,12 +85,12 @@ def generarMenu(usuario):
                                      == st.session_state['area']]
         df_filtered3G = df_filtered3[df_filtered3['AREA']
                                      == st.session_state['area']]
-        num_coincidencias_gerentes = (df_filteredG['ID'] == 0).sum()
-        num_coincidencias_gerentesVC = (df_filtered2G['ID'] == 0).sum()
-        num_coincidencias_gerentesHO = (df_filtered3G['ID'] == 0).sum()
-        num_coincidencias_directores = (df_filtered['ID'] == 2).sum()
-        num_coincidencias_directoresVC = (df_filtered2['ID'] == 2).sum()
-        num_coincidencias_directoresHO = (df_filtered3['ID'] == 2).sum()
+        num_coincidencias_gerentes = (df_filteredG['ID'] == "0").sum()
+        num_coincidencias_gerentesVC = (df_filtered2G['ID'] == "0").sum()
+        num_coincidencias_gerentesHO = (df_filtered3G['ID'] == "0").sum()
+        num_coincidencias_directores = (df_filtered['ID'] == "2").sum()
+        num_coincidencias_directoresVC = (df_filtered2['ID'] == "2").sum()
+        num_coincidencias_directoresHO = (df_filtered3['ID'] == "2").sum()
 
     with st.sidebar:
         st.image(
