@@ -117,7 +117,7 @@ if 'usuario' in st.session_state:
         df['R_EXCEDIDO'], errors='coerce')
     df['RETARDOS'] = pd.to_numeric(
         df['RETARDOS'], errors='coerce')
-    df2['MES'] = pd.to_datetime(df2['MES_FECHA'])
+    df2['MES_FECHA'] = pd.to_datetime(df2['MES_FECHA'])
     df3['FECHA'] = pd.to_datetime(df3['FECHA'], format="%d/%m/%Y")
 
     if hoy.day > 17:
