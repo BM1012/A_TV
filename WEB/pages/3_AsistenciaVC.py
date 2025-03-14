@@ -247,7 +247,7 @@ if 'usuario' in st.session_state and 'area' in st.session_state:
                 agg_vac(st.session_state['days'])
 
         # Expander para mostrar las fechas seleccionadas
-        with st.expander("Ver días seleccionados", expanded=True):
+        with st.expander("Ver días seleccionados", expanded=False):
             # Mostrar los días seleccionados
             def d_seleccion():
                 if st.session_state['days']:
