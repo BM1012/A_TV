@@ -84,7 +84,7 @@ if 'usuario' in st.session_state:
 
     vt = df[(df['NOMBRE'] == st.session_state['Nombre'])]
     vt = round(pd.to_numeric(
-        vt['VACACIONES TOMADAS'], errors='coerce').sum(), 2)
+        vt['VACACIONES_TOMADAS'], errors='coerce').sum(), 2)
 
     if st.session_state['usuario'] not in ['lfortunato']:
         if ingreso.dt.month.iloc[0] == hoy.month and ingreso.dt.day.iloc[0] == hoy.day:
