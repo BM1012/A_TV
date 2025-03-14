@@ -5,6 +5,7 @@ import pandas as pd
 import plotly.graph_objects as go
 import plotly.express as px
 from datetime import datetime, timedelta
+import sqlitecloud
 import matplotlib.pyplot as plt
 
 st.set_page_config(
@@ -26,24 +27,26 @@ if 'usuario' in st.session_state:
     st.title("TRUST :grey[VALUE]")
     st.subheader('Tablero de control')
 
-    gsheet = '1DISw0wlrkcy76HPD7lGDrZ49yhK69jVJiIgF29tRFYo'
-    sheetid = '0'
-    urlasis = f'https://docs.google.com/spreadsheets/d/{gsheet}/export?format=csv&gid={sheetid}&format'
+    ruta1 = 'sqlitecloud://cunzcmk2nk.g5.sqlite.cloud:8860/asistencias.db?apikey=DqTdjbNqB1ExoI2O2wUZjmfPaH2dWpYD69q2irRWB5g'
+    conexion = sqlitecloud.connect(ruta1)
+    df = pd.read_sql_query("SELECT * FROM asistencias", conexion)
+    conexion.close()
 
-    sheetid = '583896735'
-    urlho = f'https://docs.google.com/spreadsheets/d/{gsheet}/export?format=csv&gid={sheetid}&format'
+    ruta2 = 'sqlitecloud://cunzcmk2nk.g5.sqlite.cloud:8860/home_office.db?apikey=DqTdjbNqB1ExoI2O2wUZjmfPaH2dWpYD69q2irRWB5g'
+    conexion = sqlitecloud.connect(ruta2)
+    df2 = pd.read_sql_query("SELECT * FROM home_office", conexion)
+    conexion.close()
 
-    sheetid = '1662268283'
-    urlvc = f'https://docs.google.com/spreadsheets/d/{gsheet}/export?format=csv&gid={sheetid}&format'
-
-    sheetid = '1613484335'
-    urlhr = f'https://docs.google.com/spreadsheets/d/{gsheet}/export?format=csv&gid={sheetid}&format'
-
-    df = pd.read_csv(urlasis)
-    df2 = pd.read_csv(urlho)
-    df3 = pd.read_csv(urlvc)
-    df4 = pd.read_csv(urlhr)
-
+    ruta3 = 'sqlitecloud://cunzcmk2nk.g5.sqlite.cloud:8860/vacaciones.db?apikey=DqTdjbNqB1ExoI2O2wUZjmfPaH2dWpYD69q2irRWB5g'
+    conexion = sqlitecloud.connect(ruta3)
+    df3 = pd.read_sql_query("SELECT * FROM vacaciones", conexion)
+    conexion.close()
+    
+    ruta4 = 'sqlitecloud://cunzcmk2nk.g5.sqlite.cloud:8860/horarios.db?apikey=DqTdjbNqB1ExoI2O2wUZjmfPaH2dWpYD69q2irRWB5g'
+    conexion = sqlitecloud.connect(ruta4)
+    df4 = pd.read_sql_query("SELECT * FROM horarios", conexion)
+    conexion.close()
+    
     days = {
         'Monday': 'LUNES',
         'Tuesday': 'MARTES',
@@ -69,14 +72,14 @@ if 'usuario' in st.session_state:
     }
 
     # HORARIO -----------------------------------------------------
-    dfhr = df4[['EJECUTIVO', 'ENTRADA', 'SALIDA']]
+    dfhr = df4[['COLABORADOR', 'ENTRADA', 'SALIDA']]
 
-    dfhr = dfhr.sort_values(by='EJECUTIVO', ascending=True)
+    dfhr = dfhr.sort_values(by='COLABORADOR', ascending=True)
 
     mes_actual = datetime.now().month
     hoy = datetime.now()
 
-    ingreso = df4[(df4['EJECUTIVO'] == st.session_state['Nombre'])]
+    ingreso = df4[(df4['COLABORADOR'] == st.session_state['Nombre'])]
     ingreso = pd.to_datetime(ingreso['INGRESO'], format='%d/%m/%Y')
 
     vt = df[(df['NOMBRE'] == st.session_state['Nombre'])]
@@ -107,15 +110,15 @@ if 'usuario' in st.session_state:
     st.session_state['vacaciones'] = vp
 
     # FECHA a datetime
-    df['FECHA'] = pd.to_datetime(df['FECHA'])
-    df['HORA REGISTRO EN…'] = pd.to_datetime(
-        df['HORA REGISTRO EN…'], errors='coerce').dt.strftime("%H:%M:%S")
-    df['R. EXCEDIDO'] = pd.to_numeric(
-        df['R. EXCEDIDO'], errors='coerce')
+    df['FECHA'] = pd.to_datetime(df['FECHA'], format="%d/%m/%Y")
+    df['HORA_REGISTRO_ENTRADA'] = pd.to_datetime(
+        df['HORA_REGISTRO_ENTRADA'], errors='coerce').dt.strftime("%H:%M:%S")
+    df['R_EXCEDIDO'] = pd.to_numeric(
+        df['R_EXCEDIDO'], errors='coerce')
     df['RETARDOS'] = pd.to_numeric(
         df['RETARDOS'], errors='coerce')
-    df2['MES'] = pd.to_datetime(df2['MES FECHA'])
-    df3['FECHA'] = pd.to_datetime(df3['FECHA'])
+    df2['MES'] = pd.to_datetime(df2['MES_FECHA'])
+    df3['FECHA'] = pd.to_datetime(df3['FECHA'], format="%d/%m/%Y")
 
     if hoy.day > 17:
         mes_anterior = mes_actual - 1
@@ -125,30 +128,30 @@ if 'usuario' in st.session_state:
     dia_semana = days[hoy.strftime('%A')]
 
     # Filtro de asistencia
-    df_anterior = df[(df['ÁREA'] == st.session_state['area'])
+    df_anterior = df[(df['AREA'] == st.session_state['area'])
                      & (df['FECHA'].dt.month == (mes_anterior))]
     df_adminACT = df[df['FECHA'].dt.month == mes_actual]
     df_adminANT = df[df['FECHA'].dt.month == (mes_anterior)]
 
     if st.session_state['usuario'] not in ['lfortunato', 'clopez', 'bsanabria']:
-        df_actual = df[(df['ÁREA'] == st.session_state['area'])
+        df_actual = df[(df['AREA'] == st.session_state['area'])
                        & (df['FECHA'].dt.month == mes_actual)]
         if len(df_actual) == 0:
-            df_actual = df[(df['ÁREA'] == st.session_state['area']) & (
+            df_actual = df[(df['AREA'] == st.session_state['area']) & (
                 df['FECHA'].dt.month == mes_actual)]
     else:
         df_actual = df_adminACT
         if len(df_actual) == 0:
             df_actual = df[df['FECHA'].dt.month == mes_actual]
 
-    excedente = df_actual[['NOMBRE', 'R. EXCEDIDO']]
+    excedente = df_actual[['NOMBRE', 'R_EXCEDIDO']]
     excedente = excedente.groupby('NOMBRE', as_index=False)[
-        'R. EXCEDIDO'].mean()
-    excedente['ExcedenteRange'] = pd.cut(excedente['R. EXCEDIDO'], bins=[-0.01, 0.00, 5.99, 10.99, 100.99], labels=[
+        'R_EXCEDIDO'].mean()
+    excedente['ExcedenteRange'] = pd.cut(excedente['R_EXCEDIDO'], bins=[-0.01, 0.00, 5.99, 10.99, 100.99], labels=[
                                          'SIN RETARDO', '0 - 5 MINUTOS', '6 - 10 MINUTOS', 'MÁS DE 11 MINUTOS'], right=True, ordered=False)
     excedente = pd.DataFrame({
         'NOMBRE': excedente['NOMBRE'],
-        'R. EXCEDENTE': excedente['R. EXCEDIDO'],
+        'R. EXCEDENTE': excedente['R_EXCEDIDO'],
         'RANGOS': excedente['ExcedenteRange']
     })
     df_excedente = excedente[['NOMBRE', 'RANGOS']]
@@ -161,12 +164,12 @@ if 'usuario' in st.session_state:
         excedenteAnt = df_adminANT
 
     excedenteAnt = excedenteAnt.groupby('NOMBRE', as_index=False)[
-        'R. EXCEDIDO'].mean()
-    excedenteAnt['ExcedenteRange'] = pd.cut(excedenteAnt['R. EXCEDIDO'], bins=[-0.01, 0.00, 5.99, 10.99, 100.99], labels=[
+        'R_EXCEDIDO'].mean()
+    excedenteAnt['ExcedenteRange'] = pd.cut(excedenteAnt['R_EXCEDIDO'], bins=[-0.01, 0.00, 5.99, 10.99, 100.99], labels=[
         'SIN RETARDO', '0 - 5 MINUTOS', '6 - 10 MINUTOS', 'MÁS DE 11 MINUTOS'], right=True, ordered=False)
     excedenteAnt = pd.DataFrame({
         'NOMBRE': excedenteAnt['NOMBRE'],
-        'R. EXCEDENTE': excedenteAnt['R. EXCEDIDO'],
+        'R. EXCEDENTE': excedenteAnt['R_EXCEDIDO'],
         'RANGOS': excedenteAnt['ExcedenteRange']
     })
 
@@ -181,23 +184,23 @@ if 'usuario' in st.session_state:
                              "NOMBRE", "ExcedenteRange"])
     df_delays = df_delays.dropna()  # Eliminar filas con NaN
 
-    # Crear un nuevo DataFrame con el conteo de ejecutivos por grupo
+    # Crear un nuevo DataFrame con el conteo de COLABORADORs por grupo
     df_delays = df_delays.groupby('ExcedenteRange')[
         'NOMBRE']  # .reset_index()
 
     day_max = df_actual[['FECHA',
-                         'NOMBRE', 'HORA REGISTRO EN…', 'R. EXCEDIDO']]
+                         'NOMBRE', 'HORA_REGISTRO_ENTRADA', 'R_EXCEDIDO']]
     day_max['FECHA'] = day_max['FECHA'].dt.date
     day_max = day_max.groupby('FECHA', as_index=False)[
-        'R. EXCEDIDO'].max()
-    day_max = day_max[day_max['R. EXCEDIDO'] > 0]
-    day_max = pd.merge(day_max, df_actual[['NOMBRE',  'R. EXCEDIDO', 'HORA REGISTRO EN…']],
-                       on='R. EXCEDIDO', how='left')  # Agregar columna R. EXCEDIDO
-    day_max['MINUTOS OUT'] = day_max['R. EXCEDIDO'].astype(str) + \
+        'R_EXCEDIDO'].max()
+    day_max = day_max[day_max['R_EXCEDIDO'] > 0]
+    day_max = pd.merge(day_max, df_actual[['NOMBRE',  'R_EXCEDIDO', 'HORA_REGISTRO_ENTRADA']],
+                       on='R_EXCEDIDO', how='left')  # Agregar columna R_EXCEDIDO
+    day_max['MINUTOS OUT'] = day_max['R_EXCEDIDO'].astype(str) + \
         ' Minutos'
 
     # Filtro de home office
-    dfho = df2[(df2['MES FECHA'] == hoy.month)]
+    dfho = df2[(df2['MES_FECHA'] == hoy.month)]
 
     dfvc = df3
     dfvc = dfvc[dfvc['FECHA'] > (hoy - timedelta(days=1))]
@@ -205,12 +208,12 @@ if 'usuario' in st.session_state:
     dfvc['FECHA'] = dfvc['FECHA'].dt.date
     # Filtrar columnas dfho
     dfho = dfho[
-        (dfho['DÍA 1'] == dia_semana) |
-        (dfho['DÍA 2'] == dia_semana)
+        (dfho['DIA_1'] == dia_semana) |
+        (dfho['DIA_2'] == dia_semana)
     ]
-    dfho = dfho[['EJECUTIVO', 'ÁREA']]
+    dfho = dfho[['COLABORADOR', 'AREA']]
     # Filtrar columnas dfvc
-    dfvc = dfvc[['EJECUTIVO', 'AREA', 'FECHA']]
+    dfvc = dfvc[['COLABORADOR', 'AREA', 'FECHA']]
     dfvc = dfvc.sort_values(by='FECHA', ascending=True)
     TOPasis = df_actual.groupby('NOMBRE', as_index=False)[
         'RETARDOS'].sum().sort_values(by='RETARDOS', ascending=False)
@@ -245,23 +248,23 @@ if 'usuario' in st.session_state:
 
     # RETARDOS POR ÁREA // ADMINISTRADOR
 
-    df_suma_retardos = df_actual[['ÁREA', 'RETARDOS']]
+    df_suma_retardos = df_actual[['AREA', 'RETARDOS']]
     dfneww = df[df['FECHA'].dt.month == (mes_anterior)]
-    dfneww = dfneww[['ÁREA', 'RETARDOS']]
-    df_suma1 = dfneww.groupby('ÁREA', as_index=False)[
+    dfneww = dfneww[['AREA', 'RETARDOS']]
+    df_suma1 = dfneww.groupby('AREA', as_index=False)[
         'RETARDOS'].sum()
-    df_suma_retardos = df_suma_retardos.groupby('ÁREA', as_index=False)[
+    df_suma_retardos = df_suma_retardos.groupby('AREA', as_index=False)[
         'RETARDOS'].sum()
     df_suma_retardos = pd.merge(
-        df_suma_retardos, df_suma1[['ÁREA', 'RETARDOS']], on='ÁREA', how='left', suffixes=('', '_ANT'))
-    limite = df_actual.groupby('ÁREA', as_index=False)[
+        df_suma_retardos, df_suma1[['AREA', 'RETARDOS']], on='AREA', how='left', suffixes=('', '_ANT'))
+    limite = df_actual.groupby('AREA', as_index=False)[
         'NOMBRE'].nunique()
     limite['A_LIMITE'] = limite['NOMBRE'] * 4
     df_suma_retardos = pd.merge(
-        df_suma_retardos, limite[['ÁREA', 'A_LIMITE']], on='ÁREA', how='left')
+        df_suma_retardos, limite[['AREA', 'A_LIMITE']], on='AREA', how='left')
 
     fig3 = px.bar(df_suma_retardos,
-                  x='ÁREA',
+                  x='AREA',
                   y=['RETARDOS', 'RETARDOS_ANT'],
                   title='Retardos por Área',
                   labels={'value': 'Cantidad de Retardos',
@@ -275,14 +278,14 @@ if 'usuario' in st.session_state:
     for _, row in df_suma_retardos.iterrows():
         fig3.add_trace(
             go.Scatter(
-                x=[row['ÁREA']],  # Posición en el eje x (área)
+                x=[row['AREA']],  # Posición en el eje x (área)
                 y=[row['A_LIMITE']],  # Posición en el eje y (límite)
                 mode='markers',  # Modo de marcador (puntos)
                 showlegend=True,
 
                 # Personalización del marcador
                 marker=dict(color='black', size=8),
-                name=f'Límite {row["ÁREA"]}'  # Nombre del punto (opcional)
+                name=f'Límite {row["AREA"]}'  # Nombre del punto (opcional)
             )
         )
 
@@ -336,7 +339,7 @@ if 'usuario' in st.session_state:
                 st.metric(label='Mes calculado', value=meses[mes_actual])
 
     # SE BUSCA COINCIDENCIAS EN DFHO Y DFVC
-    dfho_filtrado = dfho[~dfho['EJECUTIVO'].isin(dfvc['EJECUTIVO'])]
+    dfho_filtrado = dfho[~dfho['COLABORADOR'].isin(dfvc['COLABORADOR'])]
 
     col1, col2 = st.columns(2)
     with col1:
