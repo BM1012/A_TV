@@ -216,7 +216,13 @@ if 'usuario' in st.session_state and 'area' in st.session_state:
                 elif len(d) == 1:  # Si el usuario selecciona un solo día
                     days_list.append(d[0].strftime("%d/%m/%Y"))
 
-                if len(days_list) > st.session_state['vacaciones']:
+                if 'vacaciones' not in st.session_state:
+                    st.error(
+                        "Es necesario iniciar correctamente la aplicación. Redirigiendo a la página de inicio...")
+                    time.sleep(5)
+                    # Redirigir a la página de inicio
+                    st.switch_page("Inicio.py")
+                elif len(days_list) > st.session_state['vacaciones']:
                     d_vac = st.session_state['vacaciones']
                     days_list.clear()
                     st.error(
@@ -258,13 +264,14 @@ if 'usuario' in st.session_state and 'area' in st.session_state:
             "REGISTRO": fecha_hora_actual
         }
 
-        permi = pd.DataFrame([datos_dict])  # Crear DataFrame
-        permi = permi.explode('FECHA')
+        nuevos_datos = pd.DataFrame([datos_dict])
+        # Separar fechas en filas individuales
+        nuevos_datos = nuevos_datos.explode('FECHA')
 
         if st.button("Guardar", key='Guardar-solicitud'):
 
             # Crear un DataFrame temporal para la comparación
-            permi_temp = permi[['COLABORADOR', 'FECHA']].copy()
+            permi_temp = nuevos_datos[['COLABORADOR', 'FECHA']].copy()
 
             # Realizar un merge para encontrar coincidencias
             merged = permi_temp.merge(filtro1[['COLABORADOR', 'FECHA']], on=[
@@ -276,8 +283,7 @@ if 'usuario' in st.session_state and 'area' in st.session_state:
                     'Ya existe el registro, por favor contacte con el administrador')
             else:
                 if permi['FECHA'].notna().any():
-                    print(df_filtered.columns)
-                    actualizar_db(df_filtered)
+                    actualizar_db(nuevos_datos)
                 else:
                     st.error('Por favor seleccione una opción valida')
     with tab2:
