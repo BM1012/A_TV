@@ -123,11 +123,11 @@ if 'usuario' in st.session_state and 'area' in st.session_state:
         filtro1 = filtro1[filtro1['COLABORADOR'] == st.session_state['colab']]
 
     filtro1['ID'] = filtro1['ID'].replace(
-        0, 'EN ESPERA DE CONFIRMACIÓN DE GERENTE')
-    filtro1['ID'] = filtro1['ID'].replace(1, 'APROBADO')
+        "0", 'EN ESPERA DE CONFIRMACIÓN DE GERENTE')
+    filtro1['ID'] = filtro1['ID'].replace("1", 'APROBADO')
     filtro1['ID'] = filtro1['ID'].replace(
-        2, 'EN ESPERA DE AUTORIZACION DE DIRECCIÓN')
-    filtro1['ID'] = filtro1['ID'].replace(3, 'NO APROBADO')
+        "2", 'EN ESPERA DE AUTORIZACION DE DIRECCIÓN')
+    filtro1['ID'] = filtro1['ID'].replace("3", 'NO APROBADO')
     filtro1 = filtro1[['COLABORADOR', 'FECHA', 'MES', 'ID']]
     filtro1 = filtro1.drop_duplicates()  # Elimina filas duplicadas
 
