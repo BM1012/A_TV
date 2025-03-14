@@ -6,6 +6,7 @@ import pandas as pd
 import login as login
 import os
 from io import StringIO
+import sqlitecloud
 from github import Github, GithubException
 from github.GithubException import BadCredentialsException
 
@@ -17,98 +18,84 @@ if 'usuario' in st.session_state and 'area' in st.session_state:
         st.session_state['days'] = []
 
     opcion = ['Aprobar', 'No aprobar', 'Pendiente']
-    url = 'https://raw.githubusercontent.com/BM1012/AsistenciasTV/main/Vacaciones.csv'
+    ruta3 = 'sqlitecloud://cunzcmk2nk.g5.sqlite.cloud:8860/vacaciones.db?apikey=DqTdjbNqB1ExoI2O2wUZjmfPaH2dWpYD69q2irRWB5g'
+    conexion = sqlitecloud.connect(ruta3)
 
-    def carga_datos(link):
-        return pd.read_csv(link, encoding='utf-8-sig')
+    def carga_datos():
+        """Cargar datos desde la base de datos y devolver un DataFrame de Pandas."""
+        cursor = conexion.cursor()
+        cursor.execute("SELECT * FROM vacaciones")
+        rows = cursor.fetchall()
+        # Obtener nombres de columnas
+        columns = [desc[0] for desc in cursor.description]
+        return pd.DataFrame(rows, columns=columns)
 
-    def acceso():
-        try:
-            token = st.secrets["github"]["token"]
-            # Autentícate con GitHub
-            g = Github(token)
-            repo = g.get_repo("BM1012/AsistenciasTV")
-            return repo
-        except BadCredentialsException:
-            st.error("Error de autenticación: Token inválido o vencido.")
-        except Exception as e:
-            st.error(f"Error inesperado: {e}")
+    def verificar_duplicados(colaborador, fecha):
+        """Verificar si ya existe un registro con el mismo COLABORADOR y FECHA."""
+        cursor = conexion.cursor()
+        cursor.execute(
+            "SELECT COUNT(*) FROM vacaciones WHERE COLABORADOR = ? AND FECHA = ?",
+            (colaborador, fecha)
+        )
+        return cursor.fetchone()[0] > 0  # True si existe, False si no
 
-    def forzar_lectura_github(repo, archivo_original, intentos=3):
-        """Forzar la lectura del archivo desde GitHub, reintentando si es necesario."""
-        for _ in range(intentos):
-            try:
-                contenido = repo.get_contents(archivo_original)
-                contenido_decodificado = contenido.decoded_content.decode('utf-8-sig')
-                df = pd.read_csv(StringIO(contenido_decodificado), encoding='utf-8-sig')
-                return df, contenido.sha  # Devolver el DataFrame y el SHA del contenido
-            except GithubException as e:
-                st.warning(f"Error al leer el archivo desde GitHub: {e}. Reintentando en 5 segundos...")
-                time.sleep(5)
-        raise Exception("No se pudo leer el archivo desde GitHub después de varios intentos.")
-    
-    def actualizar_csv(repo, nuevos_datos):
-        # Ruta del archivo original y del respaldo
-        archivo_original = "Vacaciones.csv"
-        archivo_respaldo = "Vacaciones_backup.csv"
-    
-        # Intentar actualizar el archivo hasta 3 veces (para manejar conflictos)
-        intentos = 0
-        while intentos < 3:
-            try:
-                # Forzar la lectura del archivo más reciente desde GitHub
-                df_original, sha_original = forzar_lectura_github(repo, archivo_original)
-    
-                # Verificar si el archivo de respaldo existe
-                if os.path.exists(archivo_respaldo):
-                    # Leer el archivo de respaldo
-                    df_respaldo = pd.read_csv(archivo_respaldo, encoding='utf-8-sig')
-    
-                    # Comparar los datos originales con los del respaldo
-                    if not df_original.equals(df_respaldo):
-                        # Identificar filas que están en el respaldo pero no en el original
-                        filas_faltantes = df_respaldo[~df_respaldo.isin(df_original)].dropna()
-    
-                        # Anexar las filas faltantes al archivo original
-                        if not filas_faltantes.empty:
-                            df_original = pd.concat([df_original, filas_faltantes], ignore_index=True)
-                            st.warning("Se detectaron datos en el respaldo que no estaban en el archivo original. Se han anexado al archivo original.")
-    
-                # Crear un respaldo del archivo original antes de realizar la actualización
-                df_original.to_csv(archivo_respaldo, index=False, encoding='utf-8-sig')
-    
-                # Verificar si nuevos_datos contiene datos nuevos o actualizaciones
-                if not nuevos_datos.empty:
-                    # Fusionar los cambios de nuevos_datos con el archivo original
-                    for index, nueva_fila in nuevos_datos.iterrows():
-                        condicion = (df_original['COLABORADOR'] == nueva_fila['COLABORADOR']) & \
-                                     (df_original['FECHA'] == nueva_fila['FECHA'])
-                        
-                        if not df_original.loc[condicion].empty:  # Si el registro existe
-                            # Actualizar solo la columna 'ID'
-                            df_original.loc[condicion, 'ID'] = nueva_fila['ID']
-                        else:
-                            # Agregar la nueva fila al archivo original
-                            df_original = pd.concat([df_original, nueva_fila.to_frame().T], ignore_index=True)
-    
-                # Subir la nueva versión al repositorio de GitHub
-                repo.update_file(
-                    path=archivo_original,
-                    message='Actualización automática del archivo',
-                    content=df_original.to_csv(index=False, encoding='utf-8-sig'),
-                    sha=sha_original  # Usar el SHA del contenido actual para evitar conflictos
+    def actualizar_db(nuevos_datos):
+        """Actualizar registros en la base de datos."""
+        # Primero, obtenemos todos los registros existentes que podrían necesitar actualización
+        cursor = conexion.cursor()
+        colaboradores = tuple(nuevos_datos['COLABORADOR'].unique())
+        fechas = tuple(nuevos_datos['FECHA'].unique())
+
+        # Prevenir errores si solo hay un elemento en los tuples
+        if len(colaboradores) == 1:
+            colaboradores = f"('{colaboradores[0]}')"
+        if len(fechas) == 1:
+            fechas = f"('{fechas[0]}')"
+
+        # Obtener los registros existentes en una sola consulta
+        query = f"SELECT COLABORADOR, FECHA, ID FROM vacaciones WHERE COLABORADOR IN {colaboradores} AND FECHA IN {fechas}"
+        cursor.execute(query)
+        registros_existentes = {(row[0], row[1]): row[2]
+                                for row in cursor.fetchall()}
+
+        # Contar actualizaciones
+        contador = 0
+
+        # Actualizar solo los registros que cambiaron
+        for _, fila in nuevos_datos.iterrows():
+            clave = (fila['COLABORADOR'], fila['FECHA'])
+            if clave in registros_existentes and registros_existentes[clave] != fila['ID']:
+                cursor.execute(
+                    "UPDATE vacaciones SET ID = ? WHERE COLABORADOR = ? AND FECHA = ?",
+                    (fila['ID'], fila['COLABORADOR'], fila['FECHA'])
                 )
-    
-                st.success("Datos guardados correctamente.")
-                break  # Salir del bucle si la actualización fue exitosa
-    
-            except Exception as e:
-                st.warning(f"Error: {e}. Reintentando en 5 segundos...")
-                time.sleep(5)  # Esperar antes de reintentar
-                intentos += 1
-        else:
-            st.error("No se pudo guardar los datos después de varios intentos.")
+                contador += 1
 
+        conexion.commit()
+        st.success("Datos guardados correctamente")
+        time.sleep(3)
+        st.rerun()
+
+    def insertar_db(nuevos_datos):
+        """Insertar o actualizar registros en la base de datos."""
+        cursor = conexion.cursor()
+        for _, fila in nuevos_datos.iterrows():
+            if not verificar_duplicados(fila['COLABORADOR'], fila['FECHA']):
+                cursor.execute(
+                    "INSERT INTO vacaciones (COLABORADOR, AREA, FECHA, MES, ID, REGISTRO) VALUES (?, ?, ?, ?, ?, ?)",
+                    (
+                        fila['COLABORADOR'],
+                        fila['AREA'],
+                        fila['FECHA'],
+                        fila['MES'],
+                        fila['ID'],
+                        fila['REGISTRO']
+                    )
+                )
+        conexion.commit()
+        st.success("Datos guardados correctamente")
+        time.sleep(3)
+        st.rerun()
     df_filtered = carga_datos(url)
     filtro1 = pd.DataFrame(df_filtered)
     filtro1['AREA'] = filtro1['AREA'].apply(lambda x: unicodedata.normalize(
@@ -290,13 +277,14 @@ if 'usuario' in st.session_state and 'area' in st.session_state:
                     'Ya existe el registro, por favor contacte con el administrador')
             else:
                 if permi['FECHA'].notna().any():
-                    actualizar_csv(repo, permi)
+                    print(df_filtered.columns)
+                    actualizar_db(df_filtered)
                 else:
                     st.error('Por favor seleccione una opción valida')
     with tab2:
         st.subheader("Base de datos")
         st.dataframe(filtro1, use_container_width=True, hide_index=True)
-    try:
+    if st.session_state['usuario'] in ['omoctezuma', 'molguin', 'jreyes', 'amendoza', 'aherrera', 'clopez', 'bsanabria', 'lfortunato']:
         with tab3:
             st.subheader("Solicitudes pendientes")
             edited_df = st.data_editor(filtro2, column_config={
@@ -320,19 +308,12 @@ if 'usuario' in st.session_state and 'area' in st.session_state:
                     df_filtered.loc[filas_seleccionadas, 'ID'] = 2
                     df_filtered.loc[filas_seleccionadas_2, 'ID'] = 3
                     df_filtered.loc[filas_seleccionadas_3, 'ID'] = 0
-
-                    repo = acceso()
-                    # Imprime las columnas del DataFrame
-                    print(df_filtered.columns)
-                    actualizar_csv(repo, df_filtered)
-
+                    actualizar_db(df_filtered)
                 else:
                     st.warning(
                         "No se seleccionó ninguna incidencia para autorizar.")
-    except:
-        print("No existe el bloque")
 
-    try:
+    if st.session_state['usuario'] in ['lfortunato', 'clopez', 'bsanabria']:
         with tab4:
             # df_filtered = carga_datos(url)
             st.subheader("Solicitudes pendientes")
@@ -356,19 +337,7 @@ if 'usuario' in st.session_state and 'area' in st.session_state:
                     df_filtered.loc[filas_seleccionadas_2, 'ID'] = 3
                     df_filtered.loc[filas_seleccionadas_3, 'ID'] = 2
 
-                    # Guardar el archivo localmente
-
-                    df_filtered.to_csv(
-                        "PERMISOS.csv", index=False, encoding='latin-1')
-
-                    # Subir el archivo a GitHub
-
-                    repo = acceso()
-                    # Imprime las columnas del DataFrame
-                    print(df_filtered.columns)
-                    actualizar_csv(repo, df_filtered)
+                    actualizar_db(df_filtered)
                 else:
                     st.warning(
                         "No se seleccionó ninguna incidencia para autorizar.")
-    except:
-        print("No existe el bloque")
