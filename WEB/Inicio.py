@@ -323,7 +323,7 @@ if 'usuario' in st.session_state:
             puntualidad = f'{puntualidad:.2f}%'
             st.metric(label='Porcentaje de puntualidad', value=puntualidad)
         with columnas[1]:
-            h_efectivas = round(df_actual['HORAS EFECTIVAS'].mean(), 2)
+            h_efectivas = round(df_actual['HORAS_EFECTIVAS'].mean(), 2)
             st.metric(label='Horas efectivas', value=h_efectivas)
         with columnas[2]:
             if st.session_state['usuario'] not in ['lfortunato', 'clopez']:
