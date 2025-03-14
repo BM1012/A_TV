@@ -96,7 +96,7 @@ if 'usuario' in st.session_state and 'area' in st.session_state:
         st.success("Datos guardados correctamente")
         time.sleep(3)
         st.rerun()
-    df_filtered = carga_datos(url)
+    df_filtered = carga_datos()
     filtro1 = pd.DataFrame(df_filtered)
     filtro1['AREA'] = filtro1['AREA'].apply(lambda x: unicodedata.normalize(
         'NFKD', str(x)).encode('ASCII', 'ignore').decode('ASCII'))
@@ -262,7 +262,6 @@ if 'usuario' in st.session_state and 'area' in st.session_state:
         permi = permi.explode('FECHA')
 
         if st.button("Guardar", key='Guardar-solicitud'):
-            repo = acceso()
 
             # Crear un DataFrame temporal para la comparación
             permi_temp = permi[['COLABORADOR', 'FECHA']].copy()
