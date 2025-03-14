@@ -323,6 +323,10 @@ if 'usuario' in st.session_state:
             puntualidad = f'{puntualidad:.2f}%'
             st.metric(label='Porcentaje de puntualidad', value=puntualidad)
         with columnas[1]:
+            df_actual['HORAS_EFECTIVAS'] = pd.to_numeric(
+                df_actual['HORAS_EFECTIVAS'], errors='coerce')
+
+            # Ahora calculamos el promedio, ignorando valores NaN
             h_efectivas = round(df_actual['HORAS_EFECTIVAS'].mean(), 2)
             st.metric(label='Horas efectivas', value=h_efectivas)
         with columnas[2]:
