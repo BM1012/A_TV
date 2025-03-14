@@ -261,15 +261,14 @@ if 'usuario' in st.session_state and 'area' in st.session_state:
         permi = pd.DataFrame([datos_dict])  # Crear DataFrame
         permi = permi.explode('FECHA')
 
-        st.write(filtro1)
         if st.button("Guardar", key='Guardar-solicitud'):
 
             # Crear un DataFrame temporal para la comparación
             permi_temp = permi[['COLABORADOR', 'FECHA']].copy()
 
             # Realizar un merge para encontrar coincidencias
-            merged = permi_temp.merge(filtro1[['COLABORADOR', 'MES']], on=[
-                                      'COLABORADOR', 'MES'], how='left', indicator=True)
+            merged = permi_temp.merge(filtro1[['COLABORADOR', 'FECHA']], on=[
+                                      'COLABORADOR', 'FECHA'], how='left', indicator=True)
 
             # Verificar si hay coincidencias
             if not merged[merged['_merge'] == 'both'].empty:  # Si el registro existe
