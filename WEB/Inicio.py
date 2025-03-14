@@ -359,9 +359,10 @@ if 'usuario' in st.session_state:
             if hoy.day in [14, 15, 16, 30, 31, 1]:
                 st.write("En quincenas no hay Home Office",
                          key='st-key-chart-HOME')
-            st.subheader('Home Office')
-            st.dataframe(dfho_filtrado, use_container_width=True,
-                         key='data-ho', hide_index=True, height=220)
+            else:
+                st.subheader('Home Office')
+                st.dataframe(dfho_filtrado, use_container_width=True,
+                            key='data-ho', hide_index=True, height=220)
         with tab2:
             st.subheader('Horario')
             st.dataframe(dfhr, hide_index=True,
