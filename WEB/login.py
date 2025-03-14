@@ -21,6 +21,7 @@ def validar_usuario(usuario, clave):
 
 
 def generarMenu(usuario):
+    ruta2 = 'sqlitecloud://cunzcmk2nk.g5.sqlite.cloud:8860/permisos.db?apikey=DqTdjbNqB1ExoI2O2wUZjmfPaH2dWpYD69q2irRWB5g'  
     conexion = sqlitecloud.connect(ruta2)
     df_filtered = pd.read_sql_query("SELECT * FROM permisos", conexion)
     conexion.close()
