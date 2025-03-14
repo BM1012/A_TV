@@ -3,3 +3,4 @@ pandas==2.2.3
 plotly==5.24.1
 PyGithub==2.6.1
 streamlit==1.41.1
+sqlitecloud==25.0.1
