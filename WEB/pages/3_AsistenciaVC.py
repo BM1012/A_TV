@@ -261,6 +261,7 @@ if 'usuario' in st.session_state and 'area' in st.session_state:
         permi = pd.DataFrame([datos_dict])  # Crear DataFrame
         permi = permi.explode('FECHA')
 
+        st.write(filtro1)
         if st.button("Guardar", key='Guardar-solicitud'):
 
             # Crear un DataFrame temporal para la comparación
