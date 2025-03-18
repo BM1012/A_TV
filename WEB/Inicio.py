@@ -121,7 +121,7 @@ if 'usuario' in st.session_state:
     df3['FECHA'] = pd.to_datetime(df3['FECHA'], format="%d/%m/%Y")
 
     if hoy.day > 17:
-        mes_anterior = mes_actual - 1
+        mes_anterior = mes_actual - 2
         mes_actual = mes_actual - 1
     else:
         mes_actual = mes_actual - 1
