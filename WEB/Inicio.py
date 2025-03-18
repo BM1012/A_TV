@@ -122,6 +122,7 @@ if 'usuario' in st.session_state:
 
     if hoy.day > 17:
         mes_anterior = mes_actual - 1
+        mes_actual = mes_actual
     else:
         mes_actual = mes_actual - 1
         mes_anterior = mes_actual - 1 if mes_actual >= 2 else 12
