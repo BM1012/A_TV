@@ -104,7 +104,7 @@ if 'usuario' in st.session_state and 'area' in st.session_state:
     elif st.session_state['usuario'] in ['lfortunato', 'clopez', 'bsanabria']:
         df_filtered = df
     else:
-        df_filtered = df[df['ÁREA'] == st.session_state['area']]
+        df_filtered = df[df['AREA'] == st.session_state['area']]
 
     if st.session_state['usuario'] not in ['lfortunato', 'clopez', 'bsanabria', 'omoctezuma', 'molguin', 'jreyes', 'amendoza', 'aherrera']:
         dfho = df2[(df2['MES_FECHA'] == mes_actual)]
@@ -113,7 +113,7 @@ if 'usuario' in st.session_state and 'area' in st.session_state:
     elif st.session_state['usuario'] in ['lfortunato', 'clopez', 'bsanabria']:
         dfho = df2
     else:
-        dfho = df2[(df2['ÁREA'] == st.session_state['area'])]
+        dfho = df2[(df2['AREA'] == st.session_state['area'])]
 
     if st.session_state['usuario'] not in ['lfortunato', 'clopez', 'bsanabria', 'omoctezuma', 'molguin', 'jreyes', 'amendoza', 'aherrera']:
         dfvc = df3  # [(df3['EJECUTIVO'] == st.session_state['Nombre'])]
@@ -131,7 +131,7 @@ if 'usuario' in st.session_state and 'area' in st.session_state:
     dfho = dfho[['COLABORADOR', 'MES', 'DIA_1', 'DIA_2']]
 
     if st.session_state['usuario'] in ['omoctezuma', 'molguin', 'jreyes', 'amendoza', 'aherrera']:
-        dfhr = df4[(df4['ÁREA'] == st.session_state['area'])] 
+        dfhr = df4[(df4['AREA'] == st.session_state['area'])] 
     else:
         dfhr = df4
 
@@ -162,7 +162,7 @@ if 'usuario' in st.session_state and 'area' in st.session_state:
         if ejecutivo == 'Selecciona un colaborador':
             ingreso = dfhr
         elif st.session_state['usuario'] in ['omoctezuma', 'molguin', 'jreyes', 'amendoza', 'aherrera']:
-            ingreso = dfhr[(dfhr['ÁREA'] == st.session_state['area'])]
+            ingreso = dfhr[(dfhr['AREA'] == st.session_state['area'])]
         else:
             ingreso = dfhr[(dfhr['COLABORADOR'] == ejecutivo)]
     else:
