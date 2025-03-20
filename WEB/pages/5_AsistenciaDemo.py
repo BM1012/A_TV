@@ -173,10 +173,9 @@ if 'usuario' in st.session_state and 'area' in st.session_state:
 
     st.title("TRUST :grey[VALUE]")
 
-    print(st.session_state['usuario'])
     if st.session_state['usuario'] in ['lfortunato', 'clopez', 'bsanabria']:
-        tab1, tab2, tab3, tab4 = st.tabs(
-            ["Incidencias", "Estatus", 'Solicitudes Gerentes', 'Solicitudes a Dirección'])
+        tab1, tab2, tab4 = st.tabs(
+            ["Incidencias", "Estatus", 'Solicitudes a Dirección'])
     elif st.session_state['usuario'] in ['omoctezuma', 'molguin', 'jreyes', 'amendoza', 'aherrera']:
         tab1, tab2, tab3 = st.tabs(
             ["Incidencias", "Estatus", 'Solicitudes'])
