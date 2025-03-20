@@ -100,8 +100,11 @@ if 'usuario' in st.session_state and 'area' in st.session_state:
     filtro1 = pd.DataFrame(df_filtered)
     filtro1['AREA'] = filtro1['AREA'].apply(lambda x: unicodedata.normalize(
         'NFKD', str(x)).encode('ASCII', 'ignore').decode('ASCII'))
+    filtro1['ID'] = pd.to_numeric(filtro1['ID'], errors='coerce')
     filtro2 = pd.DataFrame(df_filtered)
+    filtro2['ID'] = pd.to_numeric(filtro2['ID'], errors='coerce')
     filtro3 = pd.DataFrame(df_filtered)
+    filtro3['ID'] = pd.to_numeric(filtro3['ID'], errors='coerce')
     filtro2['AREA'] = filtro2['AREA'].replace(
         "AtenciÃ³n a clientes", 'Atencion a clientes')
     fecha_hora_actual = dt.datetime.now().strftime("%d/%m/%Y %H:%M:%S")
@@ -123,12 +126,12 @@ if 'usuario' in st.session_state and 'area' in st.session_state:
         filtro1 = filtro1[filtro1['COLABORADOR'] == st.session_state['colab']]
 
     filtro1['ID'] = filtro1['ID'].replace(
-        "0", 'EN ESPERA DE CONFIRMACIÓN DE GERENTE')
-    filtro1['ID'] = filtro1['ID'].replace("1", 'APROBADO')
+        0, 'EN ESPERA DE CONFIRMACIÓN DE GERENTE')
+    filtro1['ID'] = filtro1['ID'].replace(1, 'APROBADO')
     filtro1['ID'] = filtro1['ID'].replace(
-        "2", 'EN ESPERA DE AUTORIZACION DE DIRECCIÓN')
-    filtro1['ID'] = filtro1['ID'].replace("3", 'NO APROBADO')
-    filtro1 = filtro1[['COLABORADOR', 'FECHA', 'MES', 'ID']]
+        2, 'EN ESPERA DE AUTORIZACION DE DIRECCIÓN')
+    filtro1['ID'] = filtro1['ID'].replace(3, 'NO APROBADO')
+    filtro1 = filtro1[['COLABORADOR', 'FECHA', 'ID']]
     filtro1 = filtro1.drop_duplicates()  # Elimina filas duplicadas
 
     # SOLICITUDES GERENTES -----------------------------------------------------------
@@ -144,7 +147,7 @@ if 'usuario' in st.session_state and 'area' in st.session_state:
     elif st.session_state['usuario'] in ['molguin']:
         filtro2 = filtro2[filtro2['AREA'] == "Administracion y servicios"]
 
-    filtro2 = filtro2[filtro2['ID'] == "0"]
+    filtro2 = filtro2[filtro2['ID'] == 0]
 
     if st.session_state['usuario'] in ['lfortunato', 'clopez', 'bsanabria']:
         filtro2 = filtro2[['COLABORADOR', 'AREA',
@@ -157,7 +160,7 @@ if 'usuario' in st.session_state and 'area' in st.session_state:
     # SOLICITUDES DIRECCIÓN -----------------------------------------------------------
 
     filtro3 = filtro3[filtro3[
-        'ID'] == "2"]
+        'ID'] == 2]
     filtro3 = filtro3[['COLABORADOR', 'AREA',
                        'FECHA']]
     filtro3['AUTORIZACION'] = 'Pendiente'
@@ -167,8 +170,8 @@ if 'usuario' in st.session_state and 'area' in st.session_state:
     st.title("TRUST :grey[VALUE]")
 
     if st.session_state['usuario'] in ['lfortunato', 'clopez', 'bsanabria']:
-        tab1, tab2, tab3, tab4 = st.tabs(
-            ["Vacaciones", "Estatus", 'Solicitudes Gerentes', 'Solicitudes a Dirección'])
+        tab1, tab2, tab4 = st.tabs(
+            ["Vacaciones", "Estatus", 'Solicitudes a Dirección'])
     elif st.session_state['usuario'] in ['omoctezuma', 'molguin', 'jreyes', 'amendoza', 'aherrera']:
         tab1, tab2, tab3 = st.tabs(["Vacaciones", "Estatus", 'Solicitudes'])
     else:
@@ -263,16 +266,17 @@ if 'usuario' in st.session_state and 'area' in st.session_state:
                 st.session_state['days'] = []  # Limpiar la lista de días
                 st.rerun()  # Usar st.rerun() en lugar de experimental_rerun
 
+        meses = ["ENERO", "FEBRERO", "MARZO", "ABRIL", "MAYO", "JUNIO",
+                     "JULIO", "AGOSTO", "SEPTIEMBRE", "OCTUBRE", "NOVIEMBRE", "DICIEMBRE"]
+        mes = (today.month - 1)        
         # Crear el diccionario con las fechas seleccionadas
         datos_dict = {
             "COLABORADOR": st.session_state['colab'],
             "AREA": unicodedata.normalize('NFKD', st.session_state['area']).encode('ASCII', 'ignore').decode('ASCII'),
             # Usar la lista de días de session_state
             "FECHA": st.session_state['days'],
-            "MES": 'FEBRERO',
-            # "MES": unicodedata.normalize('NFKD', mes).encode(
-            #         'ASCII', 'ignore').decode('ASCII'),
-            'ID': 0,
+            "MES": meses[mes],
+            'ID': 0 if st.session_state['usuario'] not in ['amendoza', 'omoctezuma', 'jreyes', 'molguin', 'clopez', 'aherrera', 'asanabria', 'ogallegos', 'dcamacho', 'bsanabria', 'jgalvez'] else 2,
             "REGISTRO": fecha_hora_actual
         }
 
