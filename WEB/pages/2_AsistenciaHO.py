@@ -5,10 +5,10 @@ import time
 import pandas as pd
 from io import StringIO
 from github import Github
-from github.GithubException import BadCredentialsException
+import sqlitecloud
 import login as login
-import os
 import calendar
+import os  
 
 login.generarLogin()
 
@@ -23,89 +23,98 @@ if 'usuario' in st.session_state and 'area' in st.session_state:
     }
 
     opcion = ['Aprobar', 'No aprobar', 'Pendiente']
-    url = 'https://raw.githubusercontent.com/BM1012/AsistenciasTV/main/Home_Office.csv'
+    ruta2 = 'sqlitecloud://cunzcmk2nk.g5.sqlite.cloud:8860/home_office.db?apikey=DqTdjbNqB1ExoI2O2wUZjmfPaH2dWpYD69q2irRWB5g'
+    conexion = sqlitecloud.connect(ruta2)
 
-    def carga_datos(link):
-        return pd.read_csv(link, encoding='utf-8-sig')
+    def carga_datos():
+        """Cargar datos desde la base de datos y devolver un DataFrame de Pandas."""
+        cursor = conexion.cursor()
+        cursor.execute("SELECT * FROM home_office")
+        rows = cursor.fetchall()
+        
+        # Obtener nombres de columnas
+        columns = [desc[0] for desc in cursor.description]
+        return pd.DataFrame(rows, columns=columns)
 
-    def acceso():
-        try:
-            token = st.secrets["github"]["token"]
-            # Autentícate con GitHub
-            g = Github(token)
-            repo = g.get_repo("BM1012/AsistenciasTV")
-            st.success("Conexión exitosa con el repositorio.")
-            return repo
-        except BadCredentialsException:
-            st.error("Error de autenticación: Token inválido o vencido.")
-        except Exception as e:
-            st.error(f"Error inesperado: {e}")
+    def verificar_duplicados(colaborador, mes):
+        """Verificar si ya existe un registro con el mismo COLABORADOR y FECHA."""
+        cursor = conexion.cursor()
+        cursor.execute(
+            "SELECT COUNT(*) FROM home_office WHERE COLABORADOR = ? AND MES = ?",
+            (colaborador, mes)
+        )
+        return cursor.fetchone()[0] > 0 
 
-    def actualizar_csv(repo, nuevos_datos):
-        while True:
-            try:
-                archivo_original = "Home_Office.csv"
-                archivo_respaldo = "Home_Office_backup.csv"
-            
-                # Leer el archivo original desde GitHub
-                contenido = repo.get_contents(archivo_original)
-                contenido_decodificado = contenido.decoded_content.decode('utf-8-sig')  # Decodificar el contenido
-                df_original = pd.read_csv(StringIO(contenido_decodificado), encoding='utf-8-sig')
-            
-                # Verificar si el archivo de respaldo existe
-                if os.path.exists(archivo_respaldo):
-                    # Leer el archivo de respaldo
-                    df_respaldo = pd.read_csv(archivo_respaldo, encoding='utf-8-sig')
-            
-                    # Comparar los datos originales con los del respaldo
-                    if not df_original.equals(df_respaldo):
-                        # Identificar filas que están en el respaldo pero no en el original
-                        filas_faltantes = df_respaldo[~df_respaldo.isin(df_original)].dropna()
-            
-                        # Anexar las filas faltantes al archivo original
-                        if not filas_faltantes.empty:
-                            df_original = pd.concat([df_original, filas_faltantes], ignore_index=True)
-                            st.warning("Se detectaron datos en el respaldo que no estaban en el archivo original. Se han anexado al archivo original.")
-            
-                # Crear un respaldo del archivo original antes de realizar la actualización
-                df_original.to_csv(archivo_respaldo, index=False, encoding='utf-8-sig')
-            
-                # Verificar si nuevos_datos contiene datos nuevos o actualizaciones
-                if not nuevos_datos.empty:
-                    # Actualizar registros existentes o agregar nuevos
-                    for index, nueva_fila in nuevos_datos.iterrows():
-                        condicion = (df_original['COLABORADOR'] == nueva_fila['COLABORADOR']) & \
-                                     (df_original['FECHA'] == nueva_fila['FECHA'])
-                        
-                        if not df_original.loc[condicion].empty:  # Si el registro existe
-                            # Actualizar solo la columna 'ID'
-                            df_original.loc[condicion, 'ID'] = nueva_fila['ID']
-                        else:
-                            # Agregar la nueva fila al archivo original
-                            df_original = pd.concat([df_original, nueva_fila.to_frame().T], ignore_index=True)
-            
-                # Subir la nueva versión al repositorio de GitHub
-                repo.update_file(
-                    path=archivo_original,
-                    message='Actualización automática del archivo',
-                    content=df_original.to_csv(index=False, encoding='utf-8-sig'),
-                    sha=contenido.sha
+    def actualizar_db(nuevos_datos):
+        """Actualizar registros en la base de datos."""
+        
+        # Primero, obtenemos todos los registros existentes que podrían necesitar actualización
+        cursor = conexion.cursor()
+        colaboradores = tuple(nuevos_datos['COLABORADOR'].unique())
+        fechas = tuple(nuevos_datos['MES'].unique())
+
+        # Prevenir errores si solo hay un elemento en los tuples
+        if len(colaboradores) == 1:
+            colaboradores = f"('{colaboradores[0]}')"
+        if len(fechas) == 1:
+            fechas = f"('{fechas[0]}')"
+
+        # Obtener los registros existentes en una sola consulta
+        query = f"SELECT COLABORADOR, MES, ID FROM home_office WHERE COLABORADOR IN {colaboradores} AND MES IN {fechas}"
+        cursor.execute(query)
+        registros_existentes = {(row[0], row[1]): row[2]
+                                for row in cursor.fetchall()}
+
+        # Contar actualizaciones
+        contador = 0
+
+        # Actualizar solo los registros que cambiaron
+        for _, fila in nuevos_datos.iterrows():
+            clave = (fila['COLABORADOR'], fila['MES'])
+            if clave in registros_existentes and registros_existentes[clave] != fila['ID']:
+                cursor.execute(
+                    "UPDATE home_office SET ID = ? WHERE COLABORADOR = ? AND MES = ?",
+                    (fila['ID'], fila['COLABORADOR'], fila['MES'])
                 )
-            
-                st.success("Datos guardados correctamente")
-                break
-            except Exception as e:
-                # Si hay un conflicto, reintentar después de 5 segundos
-                st.warning(f"Error: {e}. Reintentando en 5 segundos...")
-                time.sleep(5)
+                contador += 1
 
-    df_filtered = carga_datos(url)
+        conexion.commit()
+        st.success("Datos guardados correctamente")
+        time.sleep(3)
+        st.rerun()
+
+    def insertar_db(nuevos_datos):
+        """Insertar o actualizar registros en la base de datos."""
+        cursor = conexion.cursor()
+        for _, fila in nuevos_datos.iterrows():
+            if not verificar_duplicados(fila['COLABORADOR'], fila['MES']):
+                cursor.execute(
+                    "INSERT INTO home_office (COLABORADOR, AREA, MES, PERIODO, MES_FECHA, DIA_1, DIA_2,  ID) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                    (
+                        fila['COLABORADOR'],
+                        fila['AREA'],
+                        fila['MES'],
+                        fila['PERIODO'],
+                        fila['MES_FECHA'],
+                        fila['DIA_1'],
+                        fila['DIA_2'],
+                        fila['ID']
+                    )
+                )
+        conexion.commit()
+        st.success("Datos guardados correctamente")
+        time.sleep(5)
+        st.rerun()
+
+    df_filtered = carga_datos()
     filtro1 = pd.DataFrame(df_filtered)
-    print(f'Este es el filtro1: {filtro1}')
+    filtro1['ID'] = pd.to_numeric(filtro1['ID'], errors='coerce')
     filtro1['AREA'] = filtro1['AREA'].apply(lambda x: unicodedata.normalize(
         'NFKD', str(x)).encode('ASCII', 'ignore').decode('ASCII'))
     filtro2 = pd.DataFrame(df_filtered)
+    filtro2['ID'] = pd.to_numeric(filtro2['ID'], errors='coerce')
     filtro3 = pd.DataFrame(df_filtered)
+    filtro3['ID'] = pd.to_numeric(filtro3['ID'], errors='coerce')
     filtro2['AREA'] = filtro2['AREA'].replace(
         "AtenciÃ³n a clientes", 'Atencion a clientes')
     fecha_hora_actual = dt.datetime.now().strftime("%d/%m/%Y %H:%M:%S")
@@ -138,8 +147,8 @@ if 'usuario' in st.session_state and 'area' in st.session_state:
     filtro1['ID'] = filtro1['ID'].replace(
         3, 'NO APROBADO')
     filtro1 = filtro1[['COLABORADOR',
-                       'DIA 1', 'DIA 2', 'MES', 'ID']]
-    filtro1 = filtro1.drop_duplicates()  # Elimina filas duplicadas
+                       'DIA_1', 'DIA_2', 'MES', 'ID']]
+    filtro1 = filtro1.drop_duplicates()
 
     # SOLICITUDES GERENTES -----------------------------------------------------------
     if st.session_state['usuario'] in ['amendoza', 'clopez', 'lfortunato']:
@@ -157,10 +166,10 @@ if 'usuario' in st.session_state and 'area' in st.session_state:
 
     if st.session_state['usuario'] in ['lfortunato', 'clopez', 'bsanabria']:
         filtro2 = filtro2[['COLABORADOR', 'AREA',
-                           'DIA 1', 'DIA 2']]
+                           'DIA_1', 'DIA_2']]
     else:
         filtro2 = filtro2[['COLABORADOR', 'MES',
-                           'DIA 1', 'DIA 2']]
+                           'DIA_1', 'DIA_2']]
     filtro2['AUTORIZACION'] = 'Pendiente'
 
     # SOLICITUDES DIRECCIÓN -----------------------------------------------------------
@@ -168,7 +177,7 @@ if 'usuario' in st.session_state and 'area' in st.session_state:
     filtro3 = filtro3[filtro3[
         'ID'] == 2]
     filtro3 = filtro3[['COLABORADOR', 'AREA',
-                       'DIA 1', 'DIA 2']]
+                       'DIA_1', 'DIA_2']]
     filtro3['AUTORIZACION'] = 'Pendiente'
 
     # INTERFAZ -----------------------------------------------------------------------
@@ -176,8 +185,8 @@ if 'usuario' in st.session_state and 'area' in st.session_state:
     st.title("TRUST :grey[VALUE]")
 
     if st.session_state['usuario'] in ['lfortunato', 'clopez', 'bsanabria']:
-        tab1, tab2, tab3, tab4 = st.tabs(
-            ["Home Office", "Estatus", 'Solicitudes Gerentes', 'Solicitudes a Dirección'])
+        tab1, tab2, tab4 = st.tabs(
+            ["Home Office", "Estatus", 'Solicitudes Dirección'])
     elif st.session_state['usuario'] in ['omoctezuma', 'molguin', 'jreyes', 'amendoza', 'aherrera']:
         tab1, tab2, tab3 = st.tabs(["Home Office", "Estatus", 'Solicitudes'])
     else:
@@ -255,19 +264,18 @@ if 'usuario' in st.session_state and 'area' in st.session_state:
                     'ASCII', 'ignore').decode('ASCII'),
                 "AREA": unicodedata.normalize('NFKD', st.session_state['area']).encode('ASCII', 'ignore').decode('ASCII'),
                 # Usar la lista de días de session_state
-                "MES": unicodedata.normalize('NFKD', mes).encode(
+                "MES": meses[(today.month - 1)] if today.day < 17 else meses[today.month],
+                "PERIODO": "2025",
+                "MES_FECHA": today.month if today.day < 17 else (today.month + 1),
+                "DIA_1": unicodedata.normalize('NFKD', d).encode(
                     'ASCII', 'ignore').decode('ASCII'),
-                "DIA 1": unicodedata.normalize('NFKD', d).encode(
+                "DIA_2": unicodedata.normalize('NFKD', e).encode(
                     'ASCII', 'ignore').decode('ASCII'),
-                "DIA 2": unicodedata.normalize('NFKD', e).encode(
-                    'ASCII', 'ignore').decode('ASCII'),
-                'ID': 0,
-                "REGISTRO": fecha_hora_actual
+                'ID': 0 if st.session_state['usuario'] not in ['amendoza', 'omoctezuma', 'jreyes', 'molguin', 'clopez', 'aherrera', 'asanabria', 'ogallegos', 'dcamacho', 'bsanabria', 'jgalvez'] else 2
             }
 
             permi = pd.DataFrame([datos_dict])  # Crear DataFrame
         if st.button("Guardar", key='Guardar-solicitud'):
-            repo = acceso()
 
             # Crear un DataFrame temporal para la comparación
             permi_temp = permi[['COLABORADOR', 'MES']].copy()
@@ -281,8 +289,8 @@ if 'usuario' in st.session_state and 'area' in st.session_state:
                 st.error(
                     'Ya existe el registro, por favor contacte con el administrador')
             else:
-                if permi['DIA 1'].notna().any():
-                    actualizar_csv(repo, permi)
+                if permi['DIA_1'].notna().any():
+                    insertar_db(permi)
                 else:
                     st.error('Por favor seleccione una opción valida')
 
@@ -290,12 +298,11 @@ if 'usuario' in st.session_state and 'area' in st.session_state:
         st.subheader("Base de datos")
         st.dataframe(filtro1, use_container_width=True, hide_index=True)
 
-    try:
+    if st.session_state['usuario'] in ['omoctezuma', 'molguin', 'jreyes', 'amendoza', 'aherrera']:
         with tab3:
             st.subheader("Solicitudes pendientes")
             edited_df = st.data_editor(filtro2, column_config={
                 "AUTORIZACION": st.column_config.SelectboxColumn("AUTORIZACION", options=opcion, help="Selecciona si autoriza la incidencia", default='Pendiente')}, disabled=["widgets"], hide_index=True, use_container_width=True)
-            # Botón para guardar los cambios
             if st.button('Guardar', key='Guardar-ConfirmarG'):
                 if not (edited_df['AUTORIZACION'] == 'Pendiente').all():
 
@@ -313,18 +320,13 @@ if 'usuario' in st.session_state and 'area' in st.session_state:
                     df_filtered.loc[filas_seleccionadas_2, 'ID'] = 3
                     df_filtered.loc[filas_seleccionadas_3, 'ID'] = 0
 
-                    repo = acceso()
-                    # Imprime las columnas del DataFrame
-                    print(df_filtered.columns)
-                    actualizar_csv(repo, df_filtered)
+                    # Subir el archivo 
+                    actualizar_db(df_filtered)
 
                 else:
                     st.warning(
                         "No se seleccionó ninguna incidencia para autorizar.")
-    except:
-        print("No existe el bloque")
-
-    try:
+    if st.session_state['usuario'] in ['lfortunato', 'clopez', 'bsanabria']:
         with tab4:
             # df_filtered = carga_datos(url)
             st.subheader("Solicitudes pendientes")
@@ -348,19 +350,8 @@ if 'usuario' in st.session_state and 'area' in st.session_state:
                     df_filtered.loc[filas_seleccionadas_2, 'ID'] = 3
                     df_filtered.loc[filas_seleccionadas_3, 'ID'] = 2
 
-                    # Guardar el archivo localmente
-
-                    df_filtered.to_csv(
-                        "PERMISOS.csv", index=False, encoding='utf-8-sig')
-
                     # Subir el archivo a GitHub
-
-                    repo = acceso()
-                    # Imprime las columnas del DataFrame
-                    print(df_filtered.columns)
-                    actualizar_csv(repo, df_filtered)
+                    actualizar_db(df_filtered)
                 else:
                     st.warning(
                         "No se seleccionó ninguna incidencia para autorizar.")
-    except:
-        print("No existe el bloque")
