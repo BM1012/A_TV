@@ -3,8 +3,9 @@ import utils
 import pandas as pd
 import datetime
 from datetime import timedelta
-import plotly.express as px
+import plotly_express as px
 import matplotlib.pyplot as plt
+import sqlitecloud
 import login as login
 
 st.set_page_config(
@@ -22,45 +23,27 @@ utils.local_css('/mount/src/a_tv/WEB/estilos.css', backgroundColor)
 login.generarLogin()
 
 if 'usuario' in st.session_state and 'area' in st.session_state:
-    gsheet = '1DISw0wlrkcy76HPD7lGDrZ49yhK69jVJiIgF29tRFYo'
-    sheetid = '0'
-    url = f'https://docs.google.com/spreadsheets/d/{gsheet}/export?format=csv&gid={sheetid}&format'
+    ruta1 = 'sqlitecloud://cunzcmk2nk.g5.sqlite.cloud:8860/asistencias.db?apikey=DqTdjbNqB1ExoI2O2wUZjmfPaH2dWpYD69q2irRWB5g'
+    conexion = sqlitecloud.connect(ruta1)
+    df = pd.read_sql_query("SELECT * FROM asistencias", conexion)
+    conexion.close()
 
-    sheetid = '583896735'
-    urlho = f'https://docs.google.com/spreadsheets/d/{gsheet}/export?format=csv&gid={sheetid}&format'
+    ruta2 = 'sqlitecloud://cunzcmk2nk.g5.sqlite.cloud:8860/home_office.db?apikey=DqTdjbNqB1ExoI2O2wUZjmfPaH2dWpYD69q2irRWB5g'
+    conexion = sqlitecloud.connect(ruta2)
+    df2 = pd.read_sql_query("SELECT * FROM home_office", conexion)
+    conexion.close()
 
-    sheetid = '1662268283'
-    urlvc = f'https://docs.google.com/spreadsheets/d/{gsheet}/export?format=csv&gid={sheetid}&format'
+    ruta3 = 'sqlitecloud://cunzcmk2nk.g5.sqlite.cloud:8860/vacaciones.db?apikey=DqTdjbNqB1ExoI2O2wUZjmfPaH2dWpYD69q2irRWB5g'
+    conexion = sqlitecloud.connect(ruta3)
+    df3 = pd.read_sql_query("SELECT * FROM vacaciones", conexion)
+    conexion.close()
 
-    sheetid = '1613484335'
-    urlhr = f'https://docs.google.com/spreadsheets/d/{gsheet}/export?format=csv&gid={sheetid}&format'
+    ruta4 = 'sqlitecloud://cunzcmk2nk.g5.sqlite.cloud:8860/horarios.db?apikey=DqTdjbNqB1ExoI2O2wUZjmfPaH2dWpYD69q2irRWB5g'
+    conexion = sqlitecloud.connect(ruta4)
+    df4 = pd.read_sql_query("SELECT * FROM horarios", conexion)
+    conexion.close()
 
     mes_actual = datetime.datetime.now().month
-
-    ghdf = 'https://raw.githubusercontent.com/BM1012/AsistenciasTV/main/Vacaciones.csv'
-
-    def carga_datos(link):
-        return pd.read_csv(link, encoding='utf-8-sig')
-
-    GitVacs = carga_datos(ghdf)
-
-    if st.session_state['usuario'] in ['lfortunato', 'clopez', 'bsanabria']:
-        pass
-    elif st.session_state['usuario'] in ['omoctezuma', 'molguin', 'jreyes', 'amendoza', 'aherrera']:
-        GitVacs = GitVacs[GitVacs['AREA'] == st.session_state['area']]        
-    else:
-        GitVacs = GitVacs[GitVacs['COLABORADOR'] == st.session_state['Nombre']]
-
-    GitVacs = GitVacs[GitVacs['ID'] == 1]
-
-    GitVacs = GitVacs.groupby(by='COLABORADOR', as_index=False)[
-        'ID'].count()
-
-    # DataFrame
-    df = pd.read_csv(url)
-    df2 = pd.read_csv(urlho)
-    df3 = pd.read_csv(urlvc)
-    df4 = pd.read_csv(urlhr)
 
     days = {
         'Monday': 'LUNES',
@@ -86,20 +69,34 @@ if 'usuario' in st.session_state and 'area' in st.session_state:
         (31, 50): 32
     }
 
-    df3['FECHA'] = pd.to_datetime(df3['FECHA'])
-    df['FECHA'] = pd.to_datetime(df['FECHA'])
-    df['HORA REGISTRO EN…'] = df['HORA REGISTRO EN…'].replace('-', None)
-    df['HORA REGISTRO SAL…'] = df['HORA REGISTRO SAL…'].replace('-', None)
-    df['HORA REGISTRO EN…'] = pd.to_datetime(
-        df['HORA REGISTRO EN…'], errors='coerce').dt.time
+    df3['FECHA'] = pd.to_datetime(df3['FECHA'], format="%d/%m/%Y")
+    df3['ID'] = pd.to_numeric(df3['ID'])
+    df3 = df3[df3[
+        'ID'] == 1]
+    df2['MES_FECHA'] = pd.to_numeric(df2['MES_FECHA'])
+    df['FECHA'] = pd.to_datetime(df['FECHA'], format="%d/%m/%Y")
+    df['HORA_REGISTRO_ENTRADA'] = df['HORA_REGISTRO_ENTRADA'].replace(
+        '-', None)
+    df['HORA_REGISTRO_SALIDA'] = df['HORA_REGISTRO_SALIDA'].replace('-', None)
+    df['HORA_REGISTRO_ENTRADA'] = pd.to_datetime(
+        df['HORA_REGISTRO_ENTRADA'], errors='coerce').dt.time
     df['REGISTRO'] = pd.to_datetime(
         df['REGISTRO'], errors='coerce').dt.time
     df['QUINCENAS'] = pd.to_numeric(df['QUINCENAS'], errors='coerce')
-    df['R. EXCEDIDO'] = pd.to_numeric(df['R. EXCEDIDO'], errors='coerce')
+    df['R_EXCEDIDO'] = pd.to_numeric(df['R_EXCEDIDO'], errors='coerce')
 
     hoy = pd.to_datetime(datetime.datetime.now())
     dia_semana = days[hoy.strftime('%A')]
 
+    GitVacs = df3[df3['FECHA'] > pd.to_datetime('2025-03-19')]
+    if st.session_state['usuario'] in ['lfortunato', 'clopez', 'bsanabria', 'omoctezuma', 'molguin', 'jreyes', 'amendoza', 'aherrera']:
+        GitVacs = GitVacs[GitVacs['AREA'] == st.session_state['area']]
+    else:
+        GitVacs = GitVacs[GitVacs['COLABORADOR'] == st.session_state['Nombre']]
+
+    GitVacs = GitVacs.groupby(by='COLABORADOR', as_index=False)[
+        'ID'].count()
+   
     # Filtro por área
 
     if st.session_state['usuario'] not in ['lfortunato', 'clopez', 'bsanabria', 'omoctezuma', 'molguin', 'jreyes', 'amendoza', 'aherrera']:
@@ -110,10 +107,10 @@ if 'usuario' in st.session_state and 'area' in st.session_state:
         df_filtered = df[df['ÁREA'] == st.session_state['area']]
 
     if st.session_state['usuario'] not in ['lfortunato', 'clopez', 'bsanabria', 'omoctezuma', 'molguin', 'jreyes', 'amendoza', 'aherrera']:
-        dfho = df2[(df2['MES FECHA'] == mes_actual)]
-        dfho = dfho[(dfho['DÍA 1'] == dia_semana) |
-                    (dfho['DÍA 2'] == dia_semana)]
-    if st.session_state['usuario']in ['lfortunato', 'clopez', 'bsanabria']:    
+        dfho = df2[(df2['MES_FECHA'] == mes_actual)]
+        dfho = dfho[(dfho['DIA_1'] == dia_semana) |
+                    (dfho['DIA_2'] == dia_semana)]
+    elif st.session_state['usuario'] in ['lfortunato', 'clopez', 'bsanabria']:
         dfho = df2
     else:
         dfho = df2[(df2['ÁREA'] == st.session_state['area'])]
@@ -126,12 +123,12 @@ if 'usuario' in st.session_state and 'area' in st.session_state:
     else:
         dfvc = df3[(df3['AREA'] == st.session_state['area'])]
 
-    dfvc = dfvc[['EJECUTIVO', 'MES', 'FECHA']]
+    dfvc = dfvc[['COLABORADOR', 'MES', 'FECHA']]
     dfvc['FECHA'] = dfvc['FECHA'].dt.date
 
     dfvc = dfvc.sort_values(by='FECHA', ascending=True)
 
-    dfho = dfho[['EJECUTIVO', 'MES', 'DÍA 1', 'DÍA 2']]
+    dfho = dfho[['COLABORADOR', 'MES', 'DIA_1', 'DIA_2']]
 
     if st.session_state['usuario'] in ['omoctezuma', 'molguin', 'jreyes', 'amendoza', 'aherrera']:
         dfhr = df4[(df4['ÁREA'] == st.session_state['area'])] 
@@ -151,9 +148,9 @@ if 'usuario' in st.session_state and 'area' in st.session_state:
     if st.session_state['usuario'] in ['lfortunato', 'clopez', 'bsanabria', 'omoctezuma', 'molguin', 'jreyes', 'amendoza', 'aherrera']:
         if ejecutivo != 'Selecciona un colaborador':
             df_filtered = df_filtered[df_filtered['NOMBRE'] == ejecutivo]
-            dfho = dfho[dfho['EJECUTIVO'] == ejecutivo]
-            dfvc = dfvc[dfvc['EJECUTIVO'] == ejecutivo]
-            dfhr = dfhr[dfhr['EJECUTIVO'] == ejecutivo]
+            dfho = dfho[dfho['COLABORADOR'] == ejecutivo]
+            dfvc = dfvc[dfvc['COLABORADOR'] == ejecutivo]
+            dfhr = dfhr[dfhr['COLABORADOR'] == ejecutivo]
 
     if mes != 'Selecciona un mes':
         df_filtered = df_filtered[df_filtered['MES'] == mes]
@@ -167,9 +164,9 @@ if 'usuario' in st.session_state and 'area' in st.session_state:
         elif st.session_state['usuario'] in ['omoctezuma', 'molguin', 'jreyes', 'amendoza', 'aherrera']:
             ingreso = dfhr[(dfhr['ÁREA'] == st.session_state['area'])]
         else:
-            ingreso = dfhr[(dfhr['EJECUTIVO'] == ejecutivo)]
+            ingreso = dfhr[(dfhr['COLABORADOR'] == ejecutivo)]
     else:
-        ingreso = dfhr[(dfhr['EJECUTIVO'] == st.session_state['Nombre'])]
+        ingreso = dfhr[(dfhr['COLABORADOR'] == st.session_state['Nombre'])]
     # Asegúrate de que ingreso sea de tipo fecha
     ingreso = pd.to_datetime(ingreso['INGRESO'], format='%d/%m/%Y')
 
@@ -181,28 +178,28 @@ if 'usuario' in st.session_state and 'area' in st.session_state:
     quincenas = quincenas[['NOMBRE', 'FECHA', 'QUINCENAS']]
     # quincenas = quincenas.sort_values(by='FECHA', ascending=False)
 
-    detailAsis = df_filtered[['NOMBRE', 'FECHA', 'HORA REGISTRO EN…',
-                              'R. EXCEDIDO', 'TOLERANCIA', 'RETARDOS', 'REGISTRO']]
+    detailAsis = df_filtered[['NOMBRE', 'FECHA', 'HORA_REGISTRO_ENTRADA',
+                              'R_EXCEDIDO', 'TOLERANCIA', 'RETARDOS', 'REGISTRO']]
 
     # Base de datos // TAB 2
     dfnew = df_filtered[['NOMBRE', 'FECHA', 'MES', 'HO', 'TOLERANCIA',
-                         'HORA REGISTRO EN…', 'HORA REGISTRO SAL…',  'RETARDOS']]
+                         'HORA_REGISTRO_ENTRADA', 'HORA_REGISTRO_SALIDA',  'RETARDOS']]
     dfnew['FECHA'] = dfnew['FECHA'].dt.date
 
     vt = round(pd.to_numeric(
         df_filtered['VACACIONES TOMADAS'], errors='coerce').sum(), 2)
 
-    df_filtered = df_filtered.dropna(subset=['HORA REGISTRO EN…'])
+    df_filtered = df_filtered.dropna(subset=['HORA_REGISTRO_ENTRADA'])
     hightR = df_filtered[['FECHA',
-                          'NOMBRE', 'HORA REGISTRO EN…', 'R. EXCEDIDO']]
+                          'NOMBRE', 'HORA_REGISTRO_ENTRADA', 'R_EXCEDIDO']]
 
     # CALCULO DE TIEMPO EXCEDENTE
-    excedente = df_filtered[['NOMBRE', 'R. EXCEDIDO']]
+    excedente = df_filtered[['NOMBRE', 'R_EXCEDIDO']]
     # excedente = excedente[excedente['R. EXCEDIDO'] > 0]
     excedente = round(excedente.groupby('NOMBRE', as_index=False)[
-        'R. EXCEDIDO'].mean(), 0)
-    excedente = excedente.sort_values(by='R. EXCEDIDO', ascending=False)
-    excedente['R. EXCEDIDO'] = excedente['R. EXCEDIDO'].astype(str) + \
+        'R_EXCEDIDO'].mean(), 0)
+    excedente = excedente.sort_values(by='R_EXCEDIDO', ascending=False)
+    excedente['R_EXCEDIDO'] = excedente['R_EXCEDIDO'].astype(str) + \
         ' Minutos excedidos promediados'
 
     if ingreso.dt.month.iloc[0] == hoy.month and ingreso.dt.day.iloc[0] == hoy.day:
@@ -228,11 +225,12 @@ if 'usuario' in st.session_state and 'area' in st.session_state:
             vt = vt + total_tomados + vtgh
 
     else:
-        vt = vt + st.session_state['Tomados']
+        vtgh = GitVacs['ID'].sum()
+        vt = vt + st.session_state['Tomados'] + vtgh
 
-    dfhr = dfhr[['EJECUTIVO', 'ENTRADA', 'SALIDA']]
+    dfhr = dfhr[['COLABORADOR', 'ENTRADA', 'SALIDA']]
 
-    dfhr = dfhr.sort_values(by='EJECUTIVO', ascending=True)
+    dfhr = dfhr.sort_values(by='COLABORADOR', ascending=True)
     # Suma de vacaciones pendientes|
 
     if st.session_state['usuario'] in ['lfortunato', 'clopez', 'bsanabria', 'omoctezuma', 'molguin', 'jreyes', 'amendoza', 'aherrera']:
@@ -271,32 +269,32 @@ if 'usuario' in st.session_state and 'area' in st.session_state:
 
     # Suma de horas efectivas
     he = round(pd.to_numeric(
-        df_filtered['HORAS EFECTIVAS'], errors='coerce').mean(), 2)
+        df_filtered['HORAS_EFECTIVAS'], errors='coerce').mean(), 2)
 
     # Suma de inasistencias
 
     exc_fech = df_filtered.groupby('FECHA', as_index=False)[
-        'R. EXCEDIDO'].max()
+        'R_EXCEDIDO'].max()
 
     # detailAsis = pd.merge(
     #     detailAsis, exc_fech[['NOMBRE', 'FECHA']], on='R. EXCEDIDO', how='left')
     detailAsis = pd.merge(
-        detailAsis, exc_fech[['R. EXCEDIDO', 'FECHA']], on='FECHA', how='left')
+        detailAsis, exc_fech[['R_EXCEDIDO', 'FECHA']], on='FECHA', how='left')
 
     ndf_filtered = df_filtered.sort_values(
         by='RETARDOS', ascending=True)  # Ordenar de mayor a menor
-    dfhor = df_filtered[['FECHA', 'HORA REGISTRO EN…', 'TOLERANCIA']]
+    dfhor = df_filtered[['FECHA', 'HORA_REGISTRO_ENTRADA', 'TOLERANCIA']]
 
     # DAY_MAX == PICOS RETARDOS
     hightR['FECHA'] = hightR['FECHA'].dt.date
     day_max = hightR.groupby('FECHA', as_index=False)[
-        'R. EXCEDIDO'].max()
-    day_max = day_max[day_max['R. EXCEDIDO'] > 0]
-    day_max = pd.merge(day_max, hightR[['NOMBRE',  'R. EXCEDIDO', 'HORA REGISTRO EN…']],
-                       on='R. EXCEDIDO', how='left')  # Agregar columna R. EXCEDIDO
+        'R_EXCEDIDO'].max()
+    day_max = day_max[day_max['R_EXCEDIDO'] > 0]
+    day_max = pd.merge(day_max, hightR[['NOMBRE',  'R_EXCEDIDO', 'HORA_REGISTRO_ENTRADA']],
+                       on='R_EXCEDIDO', how='left')  # Agregar columna R_EXCEDIDO
     # Elimina duplicados en 'R. EXCEDIDO'
     day_max = day_max.drop_duplicates(subset=['FECHA', 'NOMBRE'])
-    day_max['MINUTOS OUT'] = day_max['R. EXCEDIDO'].astype(str) + \
+    day_max['MINUTOS OUT'] = day_max['R_EXCEDIDO'].astype(str) + \
         ' Minutos'
 
     fig = px.pie(values=[rtotal, ptotal],
@@ -307,17 +305,17 @@ if 'usuario' in st.session_state and 'area' in st.session_state:
 
     fig2 = px.scatter(day_max,
                       x='FECHA',
-                      y='R. EXCEDIDO',
+                      y='R_EXCEDIDO',
                       title='Picos Retardos',
                       width=800,  # Ajusta el ancho de la gráfica
                       height=407)  # Ajusta la altura de la gráfica
     fig2.update_traces(textposition='top center',
                        textfont=dict(size=16))
     # Agregar sombreado
-    fig2.add_traces(px.area(day_max, x='FECHA', y='R. EXCEDIDO').data)
+    fig2.add_traces(px.area(day_max, x='FECHA', y='R_EXCEDIDO').data)
 
-    detailAsis['HORA REGISTRO EN…'] = pd.to_datetime(
-        detailAsis['HORA REGISTRO EN…'], format='%H:%M:%S', errors='coerce'
+    detailAsis['HORA_REGISTRO_ENTRADA'] = pd.to_datetime(
+        detailAsis['HORA_REGISTRO_ENTRADA'], format='%H:%M:%S', errors='coerce'
     ).dt.time
     detailAsis['TOLERANCIA'] = detailAsis['TOLERANCIA'].round(2)
     detailAsis['TOLERANCIA'] = pd.to_datetime(
