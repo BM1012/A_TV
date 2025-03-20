@@ -262,6 +262,8 @@ if 'usuario' in st.session_state and 'area' in st.session_state:
     atotal = df_filtered['NOMBRE'].count()
 
     # Suma de retardos
+    detailAsis['RETARDOS'] = pd.to_numeric(
+        detailAsis['RETARDOS'], errors='coerce')
     rtotal = detailAsis['RETARDOS'].sum()
 
     # Suma de puntualidad
