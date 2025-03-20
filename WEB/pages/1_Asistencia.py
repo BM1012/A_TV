@@ -187,7 +187,7 @@ if 'usuario' in st.session_state and 'area' in st.session_state:
     dfnew['FECHA'] = dfnew['FECHA'].dt.date
 
     vt = round(pd.to_numeric(
-        df_filtered['VACACIONES TOMADAS'], errors='coerce').sum(), 2)
+        df_filtered['VACACIONES_TOMADAS'], errors='coerce').sum(), 2)
 
     df_filtered = df_filtered.dropna(subset=['HORA_REGISTRO_ENTRADA'])
     hightR = df_filtered[['FECHA',
