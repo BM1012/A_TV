@@ -305,7 +305,7 @@ if 'usuario' in st.session_state and 'area' in st.session_state:
     with tab2:
         st.subheader("Base de datos")
         st.dataframe(filtro1, use_container_width=True, hide_index=True)
-    if st.session_state['usuario'] in ['omoctezuma', 'molguin', 'jreyes', 'amendoza', 'aherrera', 'clopez', 'bsanabria', 'lfortunato']:
+    if st.session_state['usuario'] in ['omoctezuma', 'molguin', 'jreyes', 'amendoza', 'aherrera']:
         with tab3:
             st.subheader("Solicitudes pendientes")
             edited_df = st.data_editor(filtro2, column_config={
