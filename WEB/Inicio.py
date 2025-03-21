@@ -320,16 +320,26 @@ if 'usuario' in st.session_state:
         with columnas[0]:
             retardos = ((df_actual['RETARDOS'].sum()) *
                         (100)/(df_actual['NOMBRE'].count()))
+            retardos_ant = ((df_anterior['RETARDOS'].sum()) *
+                            (100)/(df_anterior['NOMBRE'].count()))
             puntualidad = 100 - retardos
+            puntualidad_ant = 100 - retardos_ant
+            puntualidad_df = puntualidad - puntualidad_ant
             puntualidad = f'{puntualidad:.2f}%'
-            st.metric(label='Porcentaje de puntualidad', value=puntualidad)
+            puntualidad_df = f'{puntualidad_df:.2f}%'
+            st.metric(label='Porcentaje de puntualidad',
+                      value=puntualidad, delta=puntualidad_df, delta_color='off')
         with columnas[1]:
+            # Antes de calcular la media, convertimos la columna a numérica
             df_actual['HORAS_EFECTIVAS'] = pd.to_numeric(
                 df_actual['HORAS_EFECTIVAS'], errors='coerce')
-
-            # Ahora calculamos el promedio, ignorando valores NaN
+            df_anterior['HORAS_EFECTIVAS'] = pd.to_numeric(
+                df_anterior['HORAS_EFECTIVAS'], errors='coerce')
             h_efectivas = round(df_actual['HORAS_EFECTIVAS'].mean(), 2)
-            st.metric(label='Horas efectivas', value=h_efectivas)
+            h_efectivas_ant = round(df_anterior['HORAS_EFECTIVAS'].mean(), 2)
+            hrs_e = round(h_efectivas - h_efectivas_ant, 2)
+            st.metric(label='Horas efectivas',
+                      value=h_efectivas, delta=hrs_e, delta_color='off')
         with columnas[2]:
             if st.session_state['usuario'] not in ['lfortunato', 'clopez']:
                 st.metric(label='Área', value=st.session_state['area'])
