@@ -76,7 +76,7 @@ if 'usuario' in st.session_state:
 
     dfhr = dfhr.sort_values(by='COLABORADOR', ascending=True)
 
-    mes_actual = datetime.now().month
+    mes_actual = 1
     hoy = datetime.now()
 
     ingreso = df4[(df4['COLABORADOR'] == st.session_state['Nombre'])]
@@ -120,12 +120,13 @@ if 'usuario' in st.session_state:
     df2['MES_FECHA'] = pd.to_numeric(df2['MES_FECHA'])
     df3['FECHA'] = pd.to_datetime(df3['FECHA'], format="%d/%m/%Y")
 
-    if hoy.day > 17:
-        mes_anterior = mes_actual - 2
-        mes_actual = mes_actual - 1
-    else:
-        mes_actual = mes_actual - 1
-        mes_anterior = mes_actual - 1 if mes_actual >= 2 else 12
+    #if hoy.day > 17:
+    #    mes_anterior = mes_actual - 2
+    #    mes_actual = mes_actual - 1
+    #else:
+    #    mes_actual = mes_actual - 1
+    #    mes_anterior = mes_actual - 1 if mes_actual >= 2 else 12
+    mes_anterior = mes_actual - 2
     dia_semana = days[hoy.strftime('%A')]
 
     # Filtro de asistencia
