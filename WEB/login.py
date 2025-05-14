@@ -100,8 +100,8 @@ def generarMenu(usuario):
         nombre = usuario_df['Ejecutivo'].iloc[0]
         st.write(f'Usuario: **:blue-background[{nombre}]** ')
         st.write(f"Fecha: **:blue-background[{hoy.strftime('%d/%m/%Y')}]** ")
-        if st.session_state['usuario'] in usuarios_permitidos:
-            st.page_link('Inicio.py', label='Inicio', icon="🏠")
+        #if st.session_state['usuario'] in usuarios_permitidos:
+        #    st.page_link('Inicio.py', label='Inicio', icon="🏠")
         st.subheader("Asistencia")
         st.page_link('pages/1_Asistencia.py', label="Dashboard", icon="📊")
         if st.session_state['usuario'] in ['lfortunato', 'clopez', 'bsanabria']:
